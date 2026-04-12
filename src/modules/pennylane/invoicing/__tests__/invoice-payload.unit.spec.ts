@@ -530,6 +530,122 @@ describe("buildInvoicePayload — PSP mapper + onUnknownPsp (Group F)", () => {
   });
 });
 
+describe("buildInvoicePayload — fractional quantity warning", () => {
+  it("warns when quantity is fractional and unit is the default 'piece'", () => {
+    const { payload, warnings } = buildInvoicePayload({
+      order: makeOrder({
+        items: [item({ id: "weight_item", quantity: 1.5, total: 15 })],
+      }),
+      customerId: 1,
+      payment: null,
+      pspMapper: null,
+      options: baseOptions({ onUnknownPsp: "accept" }),
+    });
+    expect(payload.invoice_lines[0].quantity).toBe(1.5);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/weight_item/);
+    expect(warnings[0]).toMatch(/fractional/i);
+  });
+
+  it("does not warn when the caller overrides itemUnit (e.g., 'kg')", () => {
+    const { warnings } = buildInvoicePayload({
+      order: makeOrder({
+        items: [item({ quantity: 1.5, total: 15 })],
+      }),
+      customerId: 1,
+      payment: null,
+      pspMapper: null,
+      options: baseOptions({ onUnknownPsp: "accept", itemUnit: "kg" }),
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it("does not warn for integer quantity with default unit", () => {
+    const { warnings } = buildInvoicePayload({
+      order: makeOrder({ items: [item({ quantity: 2, total: 20 })] }),
+      customerId: 1,
+      payment: null,
+      pspMapper: null,
+      options: baseOptions({ onUnknownPsp: "accept" }),
+    });
+    expect(warnings).toEqual([]);
+  });
+});
+
+describe("buildInvoicePayload — TransactionReference validation", () => {
+  it("throws when a custom mapper returns a ref with missing fields", () => {
+    const malformedMapper = {
+      id: "malformed",
+      matches: () => true,
+      toTransactionReference: () => ({
+        banking_provider: "ok",
+        provider_field_name: "",
+        provider_field_value: "value",
+      }),
+    };
+    expect(() =>
+      buildInvoicePayload({
+        order: makeOrder({
+          id: "order_broken",
+          items: [item({ total: 10 })],
+        }),
+        customerId: 1,
+        payment: makePayment("pp_custom"),
+        pspMapper: malformedMapper,
+        options: baseOptions({ onUnknownPsp: "accept" }),
+      })
+    ).toThrow(/malformed.*provider_field_name/);
+  });
+
+  it("throws naming the offending field when a non-string is returned", () => {
+    const malformedMapper = {
+      id: "bad-types",
+      matches: () => true,
+      toTransactionReference: () => ({
+        banking_provider: "x",
+        provider_field_name: "y",
+        provider_field_value: 42 as unknown as string,
+      }),
+    };
+    expect(() =>
+      buildInvoicePayload({
+        order: makeOrder({ items: [item({ total: 10 })] }),
+        customerId: 1,
+        payment: makePayment("pp_custom"),
+        pspMapper: malformedMapper,
+        options: baseOptions({ onUnknownPsp: "accept" }),
+      })
+    ).toThrow(/provider_field_value/);
+  });
+});
+
+describe("buildInvoicePayload — payment_conditions + label", () => {
+  it("sets payment_conditions to 'upon_receipt' (invoice is already paid)", () => {
+    const { payload } = buildInvoicePayload({
+      order: makeOrder({ items: [item({ total: 10 })] }),
+      customerId: 1,
+      payment: null,
+      pspMapper: null,
+      options: baseOptions({ onUnknownPsp: "accept" }),
+    });
+    expect(payload.payment_conditions).toBe("upon_receipt");
+  });
+
+  it("sets label to a human-readable 'Medusa order #<display_id>' form", () => {
+    const { payload } = buildInvoicePayload({
+      order: makeOrder({
+        display_id: 1234,
+        items: [item({ total: 10 })],
+      }),
+      customerId: 1,
+      payment: null,
+      pspMapper: null,
+      options: baseOptions({ onUnknownPsp: "accept" }),
+    });
+    expect(payload.label).toBe("Medusa order #1234");
+  });
+});
+
 describe("buildInvoicePayload — output assembly (Group G)", () => {
   it("date equals deadline (same day, already-paid invoice)", () => {
     const { payload } = buildInvoicePayload({

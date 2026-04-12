@@ -1,6 +1,7 @@
 import type {
-  BigNumberValue,
   OrderDTO,
+  OrderLineItemDTO,
+  OrderShippingMethodDTO,
   PaymentDTO,
 } from "@medusajs/framework/types";
 
@@ -41,9 +42,10 @@ export interface PennylaneInvoiceCreatePayload {
   external_reference: string;
   currency: string;
   draft: false;
+  label: string;
+  payment_conditions: "upon_receipt";
   transaction_reference?: TransactionReference;
   invoice_lines: PennylaneInvoiceLinePayload[];
-  label?: string;
 }
 
 export interface BuildInvoicePayloadOutput {
@@ -65,7 +67,7 @@ export function buildInvoicePayload(
 ): BuildInvoicePayloadOutput {
   const { order, customerId, payment, pspMapper, options } = input;
 
-  const items = (order.items ?? []) as OrderItemShape[];
+  const items = order.items ?? [];
   if (items.length === 0) {
     throw new Error(`buildInvoicePayload: order ${order.id} has no items`);
   }
@@ -79,13 +81,20 @@ export function buildInvoicePayload(
   const currency = String(order.currency_code ?? "EUR").toUpperCase();
   const itemUnit = options.itemUnit ?? DEFAULT_ITEM_UNIT;
   const shippingUnit = options.shippingUnit ?? DEFAULT_SHIPPING_UNIT;
+  const warnings: string[] = [];
 
   const itemLines = items.map((rawItem) =>
-    buildItemLine(rawItem, currency, options, order.id, itemUnit)
+    buildItemLine({
+      rawItem,
+      currency,
+      options,
+      orderId: order.id,
+      itemUnit,
+      warnings,
+    })
   );
 
-  const shippingMethods = (order.shipping_methods ??
-    []) as ShippingMethodShape[];
+  const shippingMethods = order.shipping_methods ?? [];
   const shippingLines = shippingMethods
     .map((sm) =>
       buildShippingLine(
@@ -119,7 +128,6 @@ export function buildInvoicePayload(
   }));
 
   const date = formatOrderDate(order.created_at);
-  const warnings: string[] = [];
   const transactionReference = resolveTransactionReference({
     order,
     payment,
@@ -135,6 +143,8 @@ export function buildInvoicePayload(
     external_reference: String(order.display_id),
     currency,
     draft: false,
+    label: `Medusa order #${order.display_id}`,
+    payment_conditions: "upon_receipt",
     invoice_lines,
     ...(transactionReference
       ? { transaction_reference: transactionReference }
@@ -165,32 +175,16 @@ interface RawLine {
   vat_rate: string;
 }
 
-// Structural types for the fields this module actually reads, so the rest of
-// OrderDTO's large surface does not leak into our code.
-interface OrderItemShape {
-  id: string;
-  title?: string | null;
-  product_title?: string | null;
-  quantity: number;
-  total: unknown;
-  tax_total: unknown;
-  metadata?: Record<string, unknown> | null;
-}
+function buildItemLine(params: {
+  rawItem: OrderLineItemDTO;
+  currency: string;
+  options: BuildInvoicePayloadOptions;
+  orderId: string;
+  itemUnit: string;
+  warnings: string[];
+}): RawLine {
+  const { rawItem, currency, options, orderId, itemUnit, warnings } = params;
 
-interface ShippingMethodShape {
-  id: string;
-  name?: string | null;
-  total: unknown;
-  tax_total: unknown;
-}
-
-function buildItemLine(
-  rawItem: OrderItemShape,
-  currency: string,
-  options: BuildInvoicePayloadOptions,
-  orderId: string,
-  itemUnit: string
-): RawLine {
   if (rawItem.quantity <= 0) {
     throw new Error(
       `buildInvoicePayload: order ${orderId}, item ${rawItem.id} has quantity ${rawItem.quantity} (expected > 0)`
@@ -201,13 +195,19 @@ function buildItemLine(
   const vat_rate = extractVatRate(rawItem, options, orderId);
 
   const htLineMajor =
-    unwrapBigNumber(rawItem.total as BigNumberValue) -
-    unwrapBigNumber(rawItem.tax_total as BigNumberValue);
-  // Integer line total in cents — truth source.
+    unwrapBigNumber(rawItem.total) - unwrapBigNumber(rawItem.tax_total);
   const htLineCents = toMinorUnits(htLineMajor, currency);
-  // Per-unit HT in cents, possibly fractional; D5 formats with 6 decimals
-  // so `unit_price × quantity` on Pennylane's side reproduces htLineCents.
   const htUnitCents = htLineCents / rawItem.quantity;
+
+  // Fractional quantity with the default unit="piece" is accounting-weird
+  // (invoice line reads "1.5 pieces"). Warn rather than throw — weight-based
+  // products are legitimate in some hosts; operators can configure a better
+  // `itemUnit` or read the warning and ignore.
+  if (!Number.isInteger(rawItem.quantity) && itemUnit === DEFAULT_ITEM_UNIT) {
+    warnings.push(
+      `order ${orderId}, item ${rawItem.id} ("${label}") has fractional quantity ${rawItem.quantity} with default unit "${DEFAULT_ITEM_UNIT}"; invoice line will read "${rawItem.quantity} ${DEFAULT_ITEM_UNIT}". Configure a non-default itemUnit if weight-based.`
+    );
+  }
 
   return {
     label,
@@ -219,14 +219,12 @@ function buildItemLine(
 }
 
 function buildShippingLine(
-  sm: ShippingMethodShape,
+  sm: OrderShippingMethodDTO,
   currency: string,
   defaultVatRate: string,
   shippingUnit: string
 ): RawLine | null {
-  const htMajor =
-    unwrapBigNumber(sm.total as BigNumberValue) -
-    unwrapBigNumber(sm.tax_total as BigNumberValue);
+  const htMajor = unwrapBigNumber(sm.total) - unwrapBigNumber(sm.tax_total);
   const htCents = toMinorUnits(htMajor, currency);
   if (htCents === 0) return null;
 
@@ -239,7 +237,7 @@ function buildShippingLine(
   };
 }
 
-function coalesceLabel(rawItem: OrderItemShape): string {
+function coalesceLabel(rawItem: OrderLineItemDTO): string {
   if (rawItem.title && rawItem.title.length > 0) return rawItem.title;
   if (rawItem.product_title && rawItem.product_title.length > 0) {
     return rawItem.product_title;
@@ -248,7 +246,7 @@ function coalesceLabel(rawItem: OrderItemShape): string {
 }
 
 function extractVatRate(
-  rawItem: OrderItemShape,
+  rawItem: OrderLineItemDTO,
   options: BuildInvoicePayloadOptions,
   orderId: string
 ): string {
@@ -282,9 +280,13 @@ function resolveTransactionReference(params: {
 }): TransactionReference | null {
   const { order, payment, pspMapper, onUnknownPsp, warnings } = params;
 
-  const ref =
-    payment && pspMapper ? pspMapper.toTransactionReference(payment) : null;
-  if (ref) return ref;
+  if (payment && pspMapper) {
+    const ref = pspMapper.toTransactionReference(payment);
+    if (ref) {
+      assertValidTransactionReference(ref, pspMapper.id, order.id);
+      return ref;
+    }
+  }
 
   const providerId = payment?.provider_id ?? "none";
   if (onUnknownPsp === "error") {
@@ -298,4 +300,31 @@ function resolveTransactionReference(params: {
     );
   }
   return null;
+}
+
+/**
+ * Guards against malformed TransactionReference objects coming from
+ * user-supplied custom mappers. The registry validates the *methods* of a
+ * custom mapper at construction, but not what they return at runtime; a
+ * malformed ref would otherwise go straight to Pennylane and surface as a
+ * 422 with an opaque message far from the root cause.
+ */
+function assertValidTransactionReference(
+  ref: TransactionReference,
+  mapperId: string,
+  orderId: string
+): void {
+  const fields: (keyof TransactionReference)[] = [
+    "banking_provider",
+    "provider_field_name",
+    "provider_field_value",
+  ];
+  for (const field of fields) {
+    const value = ref[field];
+    if (typeof value !== "string" || value.length === 0) {
+      throw new Error(
+        `buildInvoicePayload: mapper "${mapperId}" returned an invalid transaction_reference for order ${orderId} — field "${field}" must be a non-empty string, got ${JSON.stringify(value)}`
+      );
+    }
+  }
 }

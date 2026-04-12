@@ -58,6 +58,8 @@ interface BuildInvoicePayloadOutput {
     external_reference: string; // String(order.display_id)
     currency: string; // uppercase ISO 4217
     draft: false;
+    label: string; // "Medusa order #<display_id>" — internal Pennylane-side label
+    payment_conditions: "upon_receipt"; // invoice is already paid
     transaction_reference?: {
       // omitted when no mapper resolves
       banking_provider: string;
@@ -72,9 +74,14 @@ interface BuildInvoicePayloadOutput {
       vat_rate: string;
     }>;
   };
-  warnings: string[]; // non-fatal events (e.g., "no PSP mapper matched …")
+  warnings: string[]; // non-fatal events
 }
 ```
+
+**Warnings** cover two non-fatal situations:
+
+1. `onUnknownPsp: "warn"` fires and no PSP mapper resolves — invoice emitted without `transaction_reference`.
+2. An item has fractional `quantity` with the default `itemUnit: "piece"` — the invoice line reads e.g. `"1.5 pieces"` which is accounting-weird. Configure `options.itemUnit = "kg"` (or appropriate) if the host sells weight-based products.
 
 ## HT extraction (the critical correctness question)
 
