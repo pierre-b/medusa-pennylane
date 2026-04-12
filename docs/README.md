@@ -17,7 +17,8 @@ This directory contains one Markdown file per shipped feature. The index below i
 
 ### D. Invoice sync
 
-- [D5 + D6 — Invoice amount helpers](invoice-amount-helpers.md) — `centsToPennylaneDecimal` (cents → Pennylane decimal string with ISO 4217 currency decimals, fractional-cent precision for D6-adjusted lines) and `reconcileInvoiceLineTotals` (adjust the largest line by up to 1 cent so line totals match the order total). Pure helpers consumed by the upcoming D1 invoice payload builder.
+- [D1 — `buildInvoicePayload`](invoice-payload.md) — pure transform from Medusa `OrderDTO` + payment + PSP mapper → the JSON body Pennylane's `POST /customer_invoices` (Finalized branch) accepts. Robust HT extraction via `(item.total − item.tax_total)`, composes D5+D6 for line formatting + reconciliation, resolves `transaction_reference` through the caller's mapper with the `onUnknownPsp` policy applied on unresolved PSPs.
+- [D5 + D6 — Invoice amount helpers](invoice-amount-helpers.md) — `centsToPennylaneDecimal` (cents → Pennylane decimal string with ISO 4217 currency decimals, fractional-cent precision for D6-adjusted lines) and `reconcileInvoiceLineTotals` (adjust the largest line by up to 1 cent so line totals match the order total). Pure helpers consumed by D1.
 
 ## Writing a feature doc
 
