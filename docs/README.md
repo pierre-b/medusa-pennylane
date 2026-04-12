@@ -15,6 +15,10 @@ This directory contains one Markdown file per shipped feature. The index below i
 
 - [P1 + P2 — PSP mapper registry + Stripe mapper](psp-registry.md) — lazy registry that resolves `payment.provider_id` → `PspMapper` → Pennylane `transaction_reference`. Ships Stripe as the built-in catalogue entry (matches `pp_stripe_*`, extracts PaymentIntent id from `payment.data.id`). Plugin options: `onUnknownPsp`, `providerAliases`, `disableMappers`, `customMappers`.
 
+### C. Customer sync
+
+- [C1 + C2 — Customer upsert + billing address mapping](customer-upsert.md) — idempotent lookup-or-create of a Pennylane customer for a Medusa order, with the billing identity taken from `order.billing_address` (frozen at sale time per French invoicing law). Per-order customers for guest checkouts (SOTA 2026 pattern confirmed by Gemini). B2B/B2C heuristic from `billing_address.company`; SIREN + VAT from configurable `order.metadata` keys.
+
 ### D. Invoice sync
 
 - [D1 — `buildInvoicePayload`](invoice-payload.md) — pure transform from Medusa `OrderDTO` + payment + PSP mapper → the JSON body Pennylane's `POST /customer_invoices` (Finalized branch) accepts. Robust HT extraction via `(item.total − item.tax_total)`, composes D5+D6 for line formatting + reconciliation, resolves `transaction_reference` through the caller's mapper with the `onUnknownPsp` policy applied on unresolved PSPs.

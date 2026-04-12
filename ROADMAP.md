@@ -39,10 +39,10 @@ The plugin ships a registry of PSP mappers with lazy resolution on demand. Each 
 
 ## C. Customer sync
 
-| #   | Feature                                                                                                                                   | Status | Notes                         |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------- |
-| C1  | `upsert-pennylane-customer` workflow step — query by `external_reference`, create individual or company based on `company_name` heuristic | ⏳     | Depends on A4 (filter syntax) |
-| C2  | Billing address mapping — Medusa address → Pennylane `billing_address` shape                                                              | ⏳     | Pure mapper, cheap unit tests |
+| #   | Feature                                                                                                                                                  | Status | Notes                                                                                           |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------- |
+| C1  | `upsertPennylaneCustomer` — idempotent lookup-or-create via `external_reference`, B2C/B2B via `billing_address.company`, SIREN/VAT from `order.metadata` | ✅     | [doc](docs/customer-upsert.md). Per-order customers for guests per Gemini's SOTA 2026 analysis. |
+| C2  | `toPennylaneBillingAddress` — Medusa address → Pennylane `billing_address` pure mapper                                                                   | ✅     | Bundled into C1. Required-field throws + country uppercase.                                     |
 
 ## D. Invoice sync (core flow)
 
