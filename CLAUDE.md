@@ -35,7 +35,7 @@ If there is a branch, test both paths.
 | `src/modules/*/__tests__/**/*.spec.ts` | Module-level integration via `@medusajs/test-utils`.                                           |
 | `integration-tests/http/*.spec.ts`     | Full plugin-inside-host HTTP tests via `medusaIntegrationTestRunner({ inApp: true })`.         |
 
-Run via `make test-unit`, `make test-integration`, `make test-http`. CI runs all of them on every PR.
+Run via `make test-unit`, `make test-integration`, `make test-http`. CI runs all of them on every push to `main`.
 
 ---
 
@@ -56,7 +56,7 @@ For Medusa v2 patterns: query the MedusaDocs MCP tool (`mcp__plugin_medusa-dev__
 
 ## Five-Pass Code Review Protocol
 
-Every piece of code MUST pass self-review before being offered to the user or PR-ready.
+Every piece of code MUST pass self-review before being committed to `main`.
 
 ### Pass 1 — Correctness
 
@@ -115,7 +115,7 @@ Never leave a command undocumented. If a contributor must type a raw `yarn ...` 
 
 ## Documentation Discipline
 
-Every feature ships a corresponding `docs/<feature>.md` in the same PR. `docs/README.md` is the index and must be kept current.
+Every feature ships a corresponding `docs/<feature>.md` in the same changeset as the code. `docs/README.md` is the index and must be kept current.
 
 A feature doc includes:
 
@@ -152,7 +152,7 @@ This repo is public. Apache-2.0 licensed.
 - No customer PII in tests, fixtures, screenshots, or commits.
 - No private URLs, internal ticket references, or coworker names in commits or code.
 - Fixtures should use obviously-fake data (`pi_3Test...`, `jean@example.test`, SIREN `123456789`).
-- Issue / PR template enforces TDD checklist — don't merge PRs that skip it.
+- Maintainer commits directly to `main`; no pull-request workflow. The five-pass review runs before each commit — no human second opinion is available, so the discipline is on every commit author. Dependabot PRs are the only exception and exist only for dependency bumps.
 
 ---
 
