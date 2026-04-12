@@ -210,7 +210,9 @@ describe("PennylaneClient write verbs", () => {
     fetchSpy.mockResolvedValue(new Response(null, { status: 204 }));
     const client = buildClient();
 
-    const result = await client.delete("/customer_invoices/1/matched_transactions/42");
+    const result = await client.delete(
+      "/customer_invoices/1/matched_transactions/42"
+    );
 
     expect(result).toBeUndefined();
     const { init } = getFetchCall(fetchSpy);
@@ -247,7 +249,10 @@ describe("PennylaneClient error mapping", () => {
   it("maps 403 to PennylaneForbiddenError", async () => {
     fetchSpy.mockResolvedValue(
       jsonResponse(
-        { error: 'Access to this resource requires scope "ledger".', status: 403 },
+        {
+          error: 'Access to this resource requires scope "ledger".',
+          status: 403,
+        },
         403
       )
     );
@@ -452,5 +457,118 @@ describe("PennylaneClient network + timeout", () => {
     const err = await captureError(promise);
     expect(err).toBeInstanceOf(PennylaneNetworkError);
     expect((err as Error).message).toMatch(/25/);
+  });
+});
+
+describe("PennylaneClient logging and redaction", () => {
+  let fetchSpy: jest.SpyInstance;
+  let logger: {
+    info: jest.Mock;
+    warn: jest.Mock;
+    error: jest.Mock;
+  };
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(global, "fetch");
+    logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+  });
+
+  const buildLoggedClient = (apiToken = "test-token") =>
+    new PennylaneClient({
+      apiToken,
+      baseUrl: "https://example.test/api/external/v2",
+      logger,
+    });
+
+  it("logs successful requests at info with method/path/status/durationMs/requestId", async () => {
+    fetchSpy.mockResolvedValue(jsonResponse({ ok: true }));
+    const client = buildLoggedClient();
+
+    await client.get("/customer_invoices", { query: { page: 2 } });
+
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    const [, context] = logger.info.mock.calls[0];
+    expect(context.method).toBe("GET");
+    expect(context.path).toBe("/customer_invoices");
+    expect(context.status).toBe(200);
+    expect(typeof context.durationMs).toBe("number");
+    expect(typeof context.requestId).toBe("string");
+    expect(context.requestId).toHaveLength(36); // uuid
+  });
+
+  it("does not log the body, query, or token on success", async () => {
+    fetchSpy.mockImplementation(async () => jsonResponse({ ok: true }));
+    const client = buildLoggedClient("super-secret-token-12345");
+
+    await client.get("/customer_invoices", { query: { page: 2, secret: "x" } });
+    await client.post("/customer_invoices", { body: { huge: "payload" } });
+
+    const serialized = JSON.stringify(logger.info.mock.calls);
+    expect(serialized).not.toContain("super-secret-token-12345");
+    expect(serialized).not.toContain("Bearer");
+    expect(serialized).not.toContain("huge");
+    expect(serialized).not.toContain("secret");
+    expect(serialized).not.toContain("page=2");
+  });
+
+  it("logs 4xx responses at warn level", async () => {
+    fetchSpy.mockResolvedValue(
+      jsonResponse({ error: "Not Found", status: 404 }, 404)
+    );
+    const client = buildLoggedClient();
+
+    await captureError(client.get("/customer_invoices/missing"));
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
+    const [, context] = logger.warn.mock.calls[0];
+    expect(context.status).toBe(404);
+    expect(context.errorMessage).toBe("Not Found");
+  });
+
+  it("logs 5xx responses at error level", async () => {
+    fetchSpy.mockResolvedValue(
+      jsonResponse({ error: "Boom", status: 500 }, 500)
+    );
+    const client = buildLoggedClient();
+
+    await captureError(client.get("/customer_invoices"));
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    const [, context] = logger.error.mock.calls[0];
+    expect(context.status).toBe(500);
+  });
+
+  it("logs network errors at error level with status='network'", async () => {
+    fetchSpy.mockRejectedValue(new TypeError("ECONNREFUSED"));
+    const client = buildLoggedClient();
+
+    await captureError(client.get("/customer_invoices"));
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    const [, context] = logger.error.mock.calls[0];
+    expect(context.status).toBe("network");
+    expect(context.errorMessage).toMatch(/ECONNREFUSED/);
+  });
+
+  it("never leaks the apiToken into thrown error stringifications", async () => {
+    const token = "abcd-1234-secret-xyz-987";
+    fetchSpy.mockResolvedValue(
+      jsonResponse({ error: "Not Found", status: 404 }, 404)
+    );
+    const client = new PennylaneClient({
+      apiToken: token,
+      baseUrl: "https://example.test/api/external/v2",
+    });
+
+    const err = await captureError(client.get("/customer_invoices/missing"));
+    const serialized =
+      JSON.stringify(err) + String(err) + ((err as Error).stack ?? "");
+    expect(serialized).not.toContain(token);
   });
 });

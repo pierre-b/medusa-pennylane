@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   PennylaneAuthError,
   PennylaneForbiddenError,
@@ -58,8 +60,8 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 export class PennylaneClient {
   readonly baseUrl: string;
   readonly requestTimeoutMs: number;
-  private readonly apiToken_: string;
-  private readonly logger_: PennylaneLogger | undefined;
+  readonly #apiToken: string;
+  readonly #logger: PennylaneLogger | undefined;
 
   constructor(params: PennylaneClientParams) {
     if (!params?.apiToken || typeof params.apiToken !== "string") {
@@ -67,11 +69,11 @@ export class PennylaneClient {
         "PennylaneClient: `apiToken` is required (received none)."
       );
     }
-    this.apiToken_ = params.apiToken;
+    this.#apiToken = params.apiToken;
     this.baseUrl = (params.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.requestTimeoutMs =
       params.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-    this.logger_ = params.logger;
+    this.#logger = params.logger;
   }
 
   get<T>(path: string, opts: Omit<RequestOptions, "body"> = {}): Promise<T> {
@@ -86,10 +88,7 @@ export class PennylaneClient {
     return this.request<T>("PUT", path, opts);
   }
 
-  delete<T>(
-    path: string,
-    opts: Omit<RequestOptions, "body"> = {}
-  ): Promise<T> {
+  delete<T>(path: string, opts: Omit<RequestOptions, "body"> = {}): Promise<T> {
     return this.request<T>("DELETE", path, opts);
   }
 
@@ -100,8 +99,11 @@ export class PennylaneClient {
   ): Promise<T> {
     const url = this.buildUrl(path, opts.query);
     const timeoutMs = opts.timeoutMs ?? this.requestTimeoutMs;
+    const requestId = randomUUID();
+    const startMs = Date.now();
+
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.apiToken_}`,
+      Authorization: `Bearer ${this.#apiToken}`,
       Accept: "application/json",
     };
 
@@ -119,14 +121,41 @@ export class PennylaneClient {
     try {
       res = await fetch(url, init);
     } catch (err) {
-      throw wrapNetworkError(err, timeoutMs);
+      const wrapped = wrapNetworkError(err, timeoutMs);
+      this.#log("error", {
+        method,
+        path,
+        status: "network",
+        durationMs: Date.now() - startMs,
+        requestId,
+        errorMessage: wrapped.message,
+      });
+      throw wrapped;
     } finally {
       clearTimeout(timer);
     }
 
     if (!res.ok) {
-      await this.handleErrorResponse(res);
+      const apiErr = await toApiError(res);
+      const level = res.status >= 500 ? "error" : "warn";
+      this.#log(level, {
+        method,
+        path,
+        status: res.status,
+        durationMs: Date.now() - startMs,
+        requestId,
+        errorMessage: apiErr.message,
+      });
+      throw apiErr;
     }
+
+    this.#log("info", {
+      method,
+      path,
+      status: res.status,
+      durationMs: Date.now() - startMs,
+      requestId,
+    });
 
     if (res.status === 204) {
       return undefined as T;
@@ -135,32 +164,18 @@ export class PennylaneClient {
     return (await res.json()) as T;
   }
 
-  private async handleErrorResponse(res: Response): Promise<never> {
-    let body: unknown = null;
-    try {
-      body = await res.json();
-    } catch {
-      body = null;
-    }
-
-    const message = extractMessage(body, res.status);
-    const context: PennylaneErrorContext = {
-      status: res.status,
-      pennylaneBody: body,
-      code: extractString(body, "code"),
-      field: extractString(body, "field"),
-    };
-
-    if (res.status === 401) throw new PennylaneAuthError(message, context);
-    if (res.status === 403) throw new PennylaneForbiddenError(message, context);
-    if (res.status === 404) throw new PennylaneNotFoundError(message, context);
-    if (res.status === 400 || res.status === 422) {
-      throw new PennylaneValidationError(message, context);
-    }
-    if (res.status >= 500) {
-      throw new PennylaneServerError(message, context);
-    }
-    throw new PennylaneValidationError(message, context);
+  #log(
+    level: "info" | "warn" | "error",
+    context: Record<string, unknown>
+  ): void {
+    if (!this.#logger) return;
+    const message =
+      level === "info"
+        ? "pennylane request"
+        : context.status === "network"
+          ? "pennylane request network error"
+          : "pennylane request failed";
+    this.#logger[level](message, context);
   }
 
   private buildUrl(path: string, query?: Record<string, QueryValue>): string {
@@ -187,6 +202,42 @@ export class PennylaneClient {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+async function toApiError(
+  res: Response
+): Promise<
+  | PennylaneAuthError
+  | PennylaneForbiddenError
+  | PennylaneNotFoundError
+  | PennylaneValidationError
+  | PennylaneServerError
+> {
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+
+  const message = extractMessage(body, res.status);
+  const context: PennylaneErrorContext = {
+    status: res.status,
+    pennylaneBody: body,
+    code: extractString(body, "code"),
+    field: extractString(body, "field"),
+  };
+
+  if (res.status === 401) return new PennylaneAuthError(message, context);
+  if (res.status === 403) return new PennylaneForbiddenError(message, context);
+  if (res.status === 404) return new PennylaneNotFoundError(message, context);
+  if (res.status === 400 || res.status === 422) {
+    return new PennylaneValidationError(message, context);
+  }
+  if (res.status >= 500) {
+    return new PennylaneServerError(message, context);
+  }
+  return new PennylaneValidationError(message, context);
 }
 
 function extractMessage(body: unknown, status: number): string {
