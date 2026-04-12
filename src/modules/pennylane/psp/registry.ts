@@ -67,6 +67,10 @@ export class PspMapperRegistry {
   }
 
   resolve(providerId: string): PspMapper | null {
+    if (typeof providerId !== "string" || providerId.length === 0) {
+      return null;
+    }
+
     const aliasTarget = this.providerAliases[providerId];
     if (aliasTarget !== undefined) {
       return this.mappersById.get(aliasTarget) ?? null;

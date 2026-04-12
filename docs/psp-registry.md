@@ -144,5 +144,5 @@ Every custom mapper is validated at boot (id non-empty string, `matches` + `toTr
 ## Tests
 
 - `src/modules/pennylane/psp/__tests__/stripe-mapper.unit.spec.ts` — 14 tests covering the Stripe mapper's `matches`, `toTransactionReference`, and `toRefundTransactionReference` across every input shape documented in ADR-005.
-- `src/modules/pennylane/psp/__tests__/registry.unit.spec.ts` — 16 tests covering construction defaults, resolution order (aliases > built-ins > custom), and every boot-time validation.
+- `src/modules/pennylane/psp/__tests__/registry.unit.spec.ts` — 18 tests covering construction defaults, resolution order (aliases > built-ins > custom), every boot-time validation, mapper exceptions surfacing unwrapped to the caller, and defensive handling of malformed `providerId` inputs at resolve time.
 - `src/modules/pennylane/__tests__/service.unit.spec.ts` — 4 additional tests asserting the registry is wired into the module service and plugin options flow through.

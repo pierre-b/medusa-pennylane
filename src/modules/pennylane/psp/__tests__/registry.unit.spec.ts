@@ -1,6 +1,6 @@
 import type { PaymentDTO } from "@medusajs/framework/types";
 
-import type { PspMapper, TransactionReference } from "../mapper";
+import type { PspMapper } from "../mapper";
 import { PspMapperRegistry } from "../registry";
 import { stripeMapper } from "../stripe-mapper";
 
@@ -145,11 +145,16 @@ describe("PspMapperRegistry disables and validation", () => {
     const registry = new PspMapperRegistry({ customMappers: [broken] });
     const resolved = registry.resolve("pp_broken");
     expect(resolved).toBe(broken);
+    // Registry does not wrap — caller (D2) owns exception policy.
     expect(() =>
       resolved!.toTransactionReference({} as unknown as PaymentDTO)
     ).toThrow("mapper boom");
-    // Registry does not wrap — caller (D2) owns exception policy.
-    const _sink: TransactionReference | null = null;
-    expect(_sink).toBeNull();
+  });
+
+  it("returns null for malformed providerId inputs (non-string, empty)", () => {
+    const registry = new PspMapperRegistry();
+    expect(registry.resolve(undefined as unknown as string)).toBeNull();
+    expect(registry.resolve(null as unknown as string)).toBeNull();
+    expect(registry.resolve("")).toBeNull();
   });
 });
