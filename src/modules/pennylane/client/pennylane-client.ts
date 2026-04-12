@@ -1,6 +1,7 @@
 import {
   PennylaneAuthError,
   PennylaneForbiddenError,
+  PennylaneNetworkError,
   PennylaneNotFoundError,
   PennylaneServerError,
   PennylaneValidationError,
@@ -98,6 +99,7 @@ export class PennylaneClient {
     opts: RequestOptions
   ): Promise<T> {
     const url = this.buildUrl(path, opts.query);
+    const timeoutMs = opts.timeoutMs ?? this.requestTimeoutMs;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiToken_}`,
       Accept: "application/json",
@@ -109,7 +111,18 @@ export class PennylaneClient {
       init.body = JSON.stringify(opts.body);
     }
 
-    const res = await fetch(url, init);
+    const controller = new AbortController();
+    init.signal = controller.signal;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    let res: Response;
+    try {
+      res = await fetch(url, init);
+    } catch (err) {
+      throw wrapNetworkError(err, timeoutMs);
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!res.ok) {
       await this.handleErrorResponse(res);
@@ -188,4 +201,27 @@ function extractString(body: unknown, key: string): string | undefined {
   if (!isRecord(body)) return undefined;
   const value = body[key];
   return typeof value === "string" ? value : undefined;
+}
+
+function wrapNetworkError(
+  err: unknown,
+  timeoutMs: number
+): PennylaneNetworkError {
+  const fields = isRecord(err)
+    ? (err as { name?: unknown; code?: unknown; message?: unknown })
+    : {};
+  const isAbort =
+    fields.name === "AbortError" ||
+    fields.code === "ABORT_ERR" ||
+    fields.code === 20;
+  const fallbackMessage =
+    typeof fields.message === "string" ? fields.message : String(err);
+  const message = isAbort
+    ? `Pennylane request timed out after ${timeoutMs}ms`
+    : `Pennylane request failed: ${fallbackMessage}`;
+  return new PennylaneNetworkError(message, {
+    status: null,
+    pennylaneBody: null,
+    cause: err,
+  });
 }

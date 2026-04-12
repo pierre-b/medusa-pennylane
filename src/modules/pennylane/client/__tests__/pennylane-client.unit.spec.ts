@@ -1,6 +1,7 @@
 import {
   PennylaneAuthError,
   PennylaneForbiddenError,
+  PennylaneNetworkError,
   PennylaneNotFoundError,
   PennylaneServerError,
   PennylaneValidationError,
@@ -376,5 +377,80 @@ describe("PennylaneClient error mapping", () => {
       pennylaneBody: null,
       message: "Pennylane request failed with status 504",
     });
+  });
+});
+
+describe("PennylaneClient network + timeout", () => {
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(global, "fetch");
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it("wraps a fetch() rejection in PennylaneNetworkError with cause", async () => {
+    const cause = new TypeError("ECONNREFUSED");
+    fetchSpy.mockRejectedValue(cause);
+    const client = buildClient();
+
+    const err = await captureError(client.get("/customer_invoices"));
+    expect(err).toBeInstanceOf(PennylaneNetworkError);
+    expect(err).toMatchObject({ status: null, pennylaneBody: null });
+    expect((err as PennylaneNetworkError & { cause?: unknown }).cause).toBe(
+      cause
+    );
+  });
+
+  it("aborts the request after requestTimeoutMs and raises a timeout error", async () => {
+    jest.useFakeTimers();
+    fetchSpy.mockImplementation(
+      (_url, init) =>
+        new Promise((_, reject) => {
+          const signal = (init as RequestInit).signal;
+          signal?.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError"))
+          );
+        })
+    );
+    const client = new PennylaneClient({
+      apiToken: "t",
+      baseUrl: "https://example.test/api/external/v2",
+      requestTimeoutMs: 50,
+    });
+
+    const promise = client.get("/slow");
+    jest.advanceTimersByTime(51);
+    const err = await captureError(promise);
+    expect(err).toBeInstanceOf(PennylaneNetworkError);
+    expect((err as Error).message).toMatch(/timed out/i);
+    expect((err as Error).message).toMatch(/50/);
+  });
+
+  it("honors per-call timeoutMs override", async () => {
+    jest.useFakeTimers();
+    fetchSpy.mockImplementation(
+      (_url, init) =>
+        new Promise((_, reject) => {
+          const signal = (init as RequestInit).signal;
+          signal?.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError"))
+          );
+        })
+    );
+    const client = new PennylaneClient({
+      apiToken: "t",
+      baseUrl: "https://example.test/api/external/v2",
+      requestTimeoutMs: 10_000,
+    });
+
+    const promise = client.get("/slow", { timeoutMs: 25 });
+    jest.advanceTimersByTime(26);
+    const err = await captureError(promise);
+    expect(err).toBeInstanceOf(PennylaneNetworkError);
+    expect((err as Error).message).toMatch(/25/);
   });
 });
