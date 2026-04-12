@@ -1,5 +1,7 @@
 import PennylaneModuleService from "../service";
 import { PennylaneClient } from "../client/pennylane-client";
+import { PspMapperRegistry } from "../psp/registry";
+import { stripeMapper } from "../psp/stripe-mapper";
 
 const silentLogger = {
   info: jest.fn(),
@@ -53,5 +55,39 @@ describe("PennylaneModuleService construction", () => {
     await svc.healthCheck();
 
     expect(delegateSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("PennylaneModuleService PSP registry wiring", () => {
+  it("exposes a PspMapperRegistry via getPspRegistry()", () => {
+    const svc = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t" }
+    );
+    expect(svc.getPspRegistry()).toBeInstanceOf(PspMapperRegistry);
+  });
+
+  it("defaults onUnknownPsp to 'warn' on the exposed registry", () => {
+    const svc = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t" }
+    );
+    expect(svc.getPspRegistry().onUnknownPsp).toBe("warn");
+  });
+
+  it("propagates onUnknownPsp from plugin options to the registry", () => {
+    const svc = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t", onUnknownPsp: "error" }
+    );
+    expect(svc.getPspRegistry().onUnknownPsp).toBe("error");
+  });
+
+  it("resolves the built-in Stripe mapper end-to-end through the service", () => {
+    const svc = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t" }
+    );
+    expect(svc.getPspRegistry().resolve("pp_stripe_stripe")).toBe(stripeMapper);
   });
 });

@@ -5,6 +5,7 @@ import InvoiceSync from "./models/invoice-sync";
 import CustomerSync from "./models/customer-sync";
 import { PennylaneClient } from "./client/pennylane-client";
 import type { MeResponse, PennylaneLogger } from "./client/pennylane-client";
+import { PspMapperRegistry } from "./psp/registry";
 import type { PennylaneModuleOptions } from "./types";
 
 type InjectedDependencies = { logger: Logger };
@@ -14,6 +15,7 @@ class PennylaneModuleService extends MedusaService({
   CustomerSync,
 }) {
   protected readonly client_: PennylaneClient;
+  protected readonly pspRegistry_: PspMapperRegistry;
   protected readonly logger_: Logger;
 
   constructor(deps: InjectedDependencies, options: PennylaneModuleOptions) {
@@ -31,10 +33,20 @@ class PennylaneModuleService extends MedusaService({
       requestTimeoutMs: options.requestTimeoutMs,
       logger: toPennylaneLogger(deps.logger),
     });
+    this.pspRegistry_ = new PspMapperRegistry({
+      onUnknownPsp: options.onUnknownPsp,
+      providerAliases: options.providerAliases,
+      disableMappers: options.disableMappers,
+      customMappers: options.customMappers,
+    });
   }
 
   getClient(): PennylaneClient {
     return this.client_;
+  }
+
+  getPspRegistry(): PspMapperRegistry {
+    return this.pspRegistry_;
   }
 
   healthCheck(): Promise<MeResponse> {
