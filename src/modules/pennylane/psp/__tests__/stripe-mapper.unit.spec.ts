@@ -3,7 +3,7 @@ import type { PaymentDTO, RefundDTO } from "@medusajs/framework/types";
 import { stripeMapper } from "../stripe-mapper";
 
 const makePayment = (data: unknown): PaymentDTO =>
-  ({ data } as unknown as PaymentDTO);
+  ({ data }) as unknown as PaymentDTO;
 
 const fakeRefund = {} as unknown as RefundDTO;
 
@@ -61,9 +61,7 @@ describe("stripeMapper.toTransactionReference", () => {
 
   it("returns null when data is undefined", () => {
     expect(
-      stripeMapper.toTransactionReference(
-        {} as unknown as PaymentDTO
-      )
+      stripeMapper.toTransactionReference({} as unknown as PaymentDTO)
     ).toBeNull();
   });
 
@@ -83,9 +81,9 @@ describe("stripeMapper.toTransactionReference", () => {
 describe("stripeMapper.toRefundTransactionReference", () => {
   it("returns the same reference as toTransactionReference when the parent payment has a PaymentIntent id", () => {
     const payment = makePayment({ id: "pi_3AbC123xyz" });
-    expect(stripeMapper.toRefundTransactionReference!(payment, fakeRefund)).toEqual(
-      stripeMapper.toTransactionReference(payment)
-    );
+    expect(
+      stripeMapper.toRefundTransactionReference!(payment, fakeRefund)
+    ).toEqual(stripeMapper.toTransactionReference(payment));
   });
 
   it("returns null when the parent payment's data.id is missing", () => {
