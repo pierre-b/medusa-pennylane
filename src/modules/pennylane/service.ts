@@ -1,10 +1,55 @@
 import { MedusaService } from "@medusajs/framework/utils";
+import type { Logger } from "@medusajs/framework/types";
+
 import InvoiceSync from "./models/invoice-sync";
 import CustomerSync from "./models/customer-sync";
+import { PennylaneClient } from "./client/pennylane-client";
+import type { MeResponse, PennylaneLogger } from "./client/pennylane-client";
+import type { PennylaneModuleOptions } from "./types";
+
+type InjectedDependencies = { logger: Logger };
 
 class PennylaneModuleService extends MedusaService({
   InvoiceSync,
   CustomerSync,
-}) {}
+}) {
+  protected readonly client_: PennylaneClient;
+  protected readonly logger_: Logger;
+
+  constructor(deps: InjectedDependencies, options: PennylaneModuleOptions) {
+    if (!options?.apiToken || typeof options.apiToken !== "string") {
+      throw new Error(
+        "medusa-plugin-pennylane: required option `apiToken` is missing."
+      );
+    }
+    // eslint-disable-next-line prefer-rest-params
+    super(...arguments);
+    this.logger_ = deps.logger;
+    this.client_ = new PennylaneClient({
+      apiToken: options.apiToken,
+      baseUrl: options.baseUrl,
+      requestTimeoutMs: options.requestTimeoutMs,
+      logger: toPennylaneLogger(deps.logger),
+    });
+  }
+
+  getClient(): PennylaneClient {
+    return this.client_;
+  }
+
+  healthCheck(): Promise<MeResponse> {
+    return this.client_.healthCheck();
+  }
+}
+
+function toPennylaneLogger(logger: Logger): PennylaneLogger {
+  const format = (message: string, context?: Record<string, unknown>) =>
+    context ? `${message} ${JSON.stringify(context)}` : message;
+  return {
+    info: (message, context) => logger.info(format(message, context)),
+    warn: (message, context) => logger.warn(format(message, context)),
+    error: (message, context) => logger.error(format(message, context)),
+  };
+}
 
 export default PennylaneModuleService;

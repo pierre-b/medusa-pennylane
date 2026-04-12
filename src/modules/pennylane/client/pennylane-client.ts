@@ -92,6 +92,10 @@ export class PennylaneClient {
     return this.request<T>("DELETE", path, opts);
   }
 
+  healthCheck(): Promise<MeResponse> {
+    return this.get<MeResponse>("/me");
+  }
+
   private async request<T>(
     method: HttpMethod,
     path: string,

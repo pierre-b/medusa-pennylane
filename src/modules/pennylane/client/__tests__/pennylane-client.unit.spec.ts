@@ -572,3 +572,48 @@ describe("PennylaneClient logging and redaction", () => {
     expect(serialized).not.toContain(token);
   });
 });
+
+describe("PennylaneClient healthCheck", () => {
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(global, "fetch");
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+  });
+
+  it("GETs /me and returns the parsed MeResponse", async () => {
+    const meBody = {
+      user: {
+        id: 1,
+        first_name: "Jean",
+        last_name: "Dupont",
+        email: "jean@example.test",
+        locale: "fr",
+      },
+      company: { id: 42, name: "Choc SAS", reg_no: "123456789" },
+      scopes: ["customer_invoices", "customers"],
+    };
+    fetchSpy.mockResolvedValue(jsonResponse(meBody));
+    const client = buildClient();
+
+    const result = await client.healthCheck();
+
+    expect(result).toEqual(meBody);
+    const { url, init } = getFetchCall(fetchSpy);
+    expect(url).toBe("https://example.test/api/external/v2/me");
+    expect(init.method).toBe("GET");
+  });
+
+  it("surfaces 401 as PennylaneAuthError", async () => {
+    fetchSpy.mockResolvedValue(
+      jsonResponse({ error: "The access token is invalid", status: 401 }, 401)
+    );
+    const client = buildClient();
+
+    const err = await captureError(client.healthCheck());
+    expect(err).toBeInstanceOf(PennylaneAuthError);
+  });
+});
