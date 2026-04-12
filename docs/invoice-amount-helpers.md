@@ -29,7 +29,7 @@ centsToPennylaneDecimal(1250.333); // "12.503330"  (fractional cents → 6 decim
 - `amount` is a `number` in **minor currency units**. For zero-decimal currencies (JPY, KRW, …) this means the integer major-unit amount — JPY has no smaller unit. This matches how Medusa's `BigNumber` utility stores amounts.
 - `currency` is an ISO 4217 code, case-insensitive. Unknown codes default to 2 decimals.
 - Integer input → exactly `getCurrencyDecimals(currency)` fraction digits.
-- Fractional input (produced by D6's largest-line adjustment) → 6 fraction digits, Pennylane's documented maximum on `raw_currency_unit_price`.
+- Fractional input (produced by D6's largest-line adjustment) → 6 fraction digits, Pennylane's documented maximum on `raw_currency_unit_price`. Exception: zero-decimal currencies (JPY, KRW, …) have no minor unit, so fractional inputs are rounded back to the integer major unit rather than emitted as nonsensical `"1250.500000"`.
 - Throws on `NaN` / `Infinity`.
 
 Companion: `getCurrencyDecimals(currency)` returns the decimal count (0, 2, or 3). Exported for callers that need the raw value.
@@ -70,6 +70,7 @@ const balanced = reconcileInvoiceLineTotals(lines, 4610);
   - `expectedTotalCents` is not finite.
   - `lines` is empty and `expectedTotalCents` ≠ 0.
 - Never mutates the input array or its element objects. Returns a new array with the adjusted line replaced by a fresh object; untouched lines share references with the input.
+- Return type is `readonly T[]` so the pure-function contract is enforced at the type level. Callers that need a mutable array can `.slice()` or spread.
 
 ### The fractional-cent caveat
 

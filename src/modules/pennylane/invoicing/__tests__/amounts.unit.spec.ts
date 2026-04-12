@@ -50,6 +50,11 @@ describe("centsToPennylaneDecimal", () => {
     expect(centsToPennylaneDecimal(1250.333, "EUR")).toBe("12.503330");
   });
 
+  it("rounds fractional input back to integer for zero-decimal currencies (no minor unit)", () => {
+    expect(centsToPennylaneDecimal(1250.5, "JPY")).toBe("1251");
+    expect(centsToPennylaneDecimal(1250.4, "JPY")).toBe("1250");
+  });
+
   it("throws on NaN", () => {
     expect(() => centsToPennylaneDecimal(NaN, "EUR")).toThrow(/finite/i);
   });

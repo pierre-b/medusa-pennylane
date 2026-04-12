@@ -49,9 +49,10 @@ describe("reconcileInvoiceLineTotals — happy path", () => {
   });
 
   it("picks the first line when multiple lines tie on largest total", () => {
+    // Deterministic tie-break: first-encountered line wins (via strict `>`).
     const lines = [
       { quantity: 1, unitPriceCents: 1000 },
-      { quantity: 1, unitPriceCents: 1000 }, // same total — first wins? no, first occurrence is index 0
+      { quantity: 1, unitPriceCents: 1000 },
       { quantity: 1, unitPriceCents: 500 },
     ];
     const result = reconcileInvoiceLineTotals(lines, 1000 + 1000 + 500 + 1);

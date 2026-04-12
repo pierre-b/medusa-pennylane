@@ -24,7 +24,7 @@ const MAX_DRIFT_CENTS = 1;
 export function reconcileInvoiceLineTotals<T extends ReconcilableInvoiceLine>(
   lines: readonly T[],
   expectedTotalCents: number
-): T[] {
+): readonly T[] {
   if (!Number.isFinite(expectedTotalCents)) {
     throw new Error(
       `reconcileInvoiceLineTotals: expectedTotalCents must be a finite number (received ${expectedTotalCents})`
@@ -47,7 +47,7 @@ export function reconcileInvoiceLineTotals<T extends ReconcilableInvoiceLine>(
   const drift = expectedTotalCents - currentSum;
 
   if (drift === 0) {
-    return lines as T[];
+    return lines;
   }
 
   if (Math.abs(drift) > MAX_DRIFT_CENTS) {
@@ -69,6 +69,11 @@ export function reconcileInvoiceLineTotals<T extends ReconcilableInvoiceLine>(
 }
 
 function indexOfLargestLine(lines: readonly ReconcilableInvoiceLine[]): number {
+  if (lines.length === 0) {
+    throw new Error(
+      "indexOfLargestLine: cannot operate on an empty array (caller must guard)"
+    );
+  }
   let bestIndex = 0;
   let bestTotal = lines[0].quantity * lines[0].unitPriceCents;
   for (let i = 1; i < lines.length; i++) {

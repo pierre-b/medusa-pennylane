@@ -70,5 +70,11 @@ export function centsToPennylaneDecimal(
 
   // Fractional input (D6 largest-line adjustment on quantity > 1) — preserve
   // precision up to Pennylane's 6-decimal cap on `raw_currency_unit_price`.
+  // Zero-decimal currencies (JPY, etc.) have no minor unit, so fractional
+  // inputs are rounded back to the integer major unit rather than emitted as
+  // nonsensical "1250.500000".
+  if (decimals === 0) {
+    return value.toFixed(0);
+  }
   return value.toFixed(PENNYLANE_MAX_DECIMALS);
 }
