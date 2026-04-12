@@ -1,0 +1,40 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/customer_invoices.post.requestBody.content.application/json.schema.anyOf[1].properties.invoice_lines.items.oneOf[1].properties.vat_rate.enum",
+    "snapshotDate": "2026-04-12",
+    "scope": "French rates + cross-border / special statuses only; the upstream enum also includes 100+ country codes that are not shipped in the plugin's narrow typed enum."
+  },
+  "fr_rates": [
+    "FR_1_05",
+    "FR_1_75",
+    "FR_09",
+    "FR_21",
+    "FR_40",
+    "FR_50",
+    "FR_55",
+    "FR_60",
+    "FR_65",
+    "FR_85",
+    "FR_92",
+    "FR_100",
+    "FR_130",
+    "FR_15_385",
+    "FR_160",
+    "FR_196",
+    "FR_200",
+    "FR_85_construction",
+    "FR_100_construction",
+    "FR_200_construction"
+  ],
+  "specials": [
+    "exempt",
+    "extracom",
+    "intracom_21",
+    "intracom_55",
+    "intracom_85",
+    "intracom_100",
+    "crossborder",
+    "mixed"
+  ]
+}
