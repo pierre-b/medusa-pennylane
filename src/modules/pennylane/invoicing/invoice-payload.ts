@@ -1,14 +1,14 @@
-import type { OrderDTO, PaymentDTO } from "@medusajs/framework/types";
+import type {
+  BigNumberValue,
+  OrderDTO,
+  PaymentDTO,
+} from "@medusajs/framework/types";
 
 import type { PspMapper, TransactionReference } from "../psp/mapper";
 import type { OnUnknownPsp } from "../psp/registry";
 
 import { centsToPennylaneDecimal, toMinorUnits } from "./amounts";
 import { unwrapBigNumber } from "./big-number";
-import {
-  reconcileInvoiceLineTotals,
-  type ReconcilableInvoiceLine,
-} from "./reconcile";
 
 export interface BuildInvoicePayloadOptions {
   vatMetadataKey: string;
@@ -70,6 +70,12 @@ export function buildInvoicePayload(
     throw new Error(`buildInvoicePayload: order ${order.id} has no items`);
   }
 
+  if (order.display_id === undefined || order.display_id === null) {
+    throw new Error(
+      `buildInvoicePayload: order ${order.id} has no display_id; cannot form external_reference`
+    );
+  }
+
   const currency = String(order.currency_code ?? "EUR").toUpperCase();
   const itemUnit = options.itemUnit ?? DEFAULT_ITEM_UNIT;
   const shippingUnit = options.shippingUnit ?? DEFAULT_SHIPPING_UNIT;
@@ -92,25 +98,25 @@ export function buildInvoicePayload(
     .filter((line): line is RawLine => line !== null);
 
   const lines: RawLine[] = [...itemLines, ...shippingLines];
-  const expectedHTCents = lines.reduce(
-    (sum, line) => sum + line.quantity * line.unitPriceCents,
-    0
-  );
 
-  const reconciled = reconcileInvoiceLineTotals(lines, expectedHTCents);
-
-  const invoice_lines: PennylaneInvoiceLinePayload[] = reconciled.map(
-    (line) => ({
-      label: line.label,
-      quantity: line.quantity,
-      raw_currency_unit_price: centsToPennylaneDecimal(
-        line.unitPriceCents,
-        currency
-      ),
-      unit: line.unit,
-      vat_rate: line.vat_rate,
-    })
-  );
+  // No reconciliation here — unitPriceCents is a fractional cent count
+  // (htLineCents / quantity). Pennylane formats the HT total as
+  // `unit_price × quantity` at up to 6-decimal precision, which exactly
+  // reproduces htLineCents for each line. D6 would have no genuinely
+  // external truth to reconcile against (expected = derived from the same
+  // source as the lines), so we skip it here. D6 remains available for
+  // future consumers that have an independent truth (e.g., E-series
+  // credit notes reconciled against the refund amount).
+  const invoice_lines: PennylaneInvoiceLinePayload[] = lines.map((line) => ({
+    label: line.label,
+    quantity: line.quantity,
+    raw_currency_unit_price: centsToPennylaneDecimal(
+      line.unitPriceCents,
+      currency
+    ),
+    unit: line.unit,
+    vat_rate: line.vat_rate,
+  }));
 
   const date = formatOrderDate(order.created_at);
   const warnings: string[] = [];
@@ -142,8 +148,19 @@ export function buildInvoicePayload(
 /* Internal helpers                                                         */
 /* ------------------------------------------------------------------------ */
 
-interface RawLine extends ReconcilableInvoiceLine {
+interface RawLine {
   label: string;
+  quantity: number;
+  /**
+   * HT unit price expressed in minor currency units.
+   *
+   * Integer for clean divisions (quantity 1, or quantity N where the line
+   * total in cents is divisible by N). Fractional when the division produces
+   * a remainder — `centsToPennylaneDecimal` then formats with 6 decimals,
+   * Pennylane's `raw_currency_unit_price` cap, so `unit_price × quantity`
+   * reproduces the exact line HT on Pennylane's side.
+   */
+  unitPriceCents: number;
   unit: string;
   vat_rate: string;
 }
@@ -184,9 +201,13 @@ function buildItemLine(
   const vat_rate = extractVatRate(rawItem, options, orderId);
 
   const htLineMajor =
-    unwrapBigNumber(rawItem.total as never) -
-    unwrapBigNumber(rawItem.tax_total as never);
-  const htUnitCents = toMinorUnits(htLineMajor / rawItem.quantity, currency);
+    unwrapBigNumber(rawItem.total as BigNumberValue) -
+    unwrapBigNumber(rawItem.tax_total as BigNumberValue);
+  // Integer line total in cents — truth source.
+  const htLineCents = toMinorUnits(htLineMajor, currency);
+  // Per-unit HT in cents, possibly fractional; D5 formats with 6 decimals
+  // so `unit_price × quantity` on Pennylane's side reproduces htLineCents.
+  const htUnitCents = htLineCents / rawItem.quantity;
 
   return {
     label,
@@ -204,7 +225,8 @@ function buildShippingLine(
   shippingUnit: string
 ): RawLine | null {
   const htMajor =
-    unwrapBigNumber(sm.total as never) - unwrapBigNumber(sm.tax_total as never);
+    unwrapBigNumber(sm.total as BigNumberValue) -
+    unwrapBigNumber(sm.tax_total as BigNumberValue);
   const htCents = toMinorUnits(htMajor, currency);
   if (htCents === 0) return null;
 

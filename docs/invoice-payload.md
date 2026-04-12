@@ -115,16 +115,13 @@ The registry resolution lives in D3 (the consumer). D1 just takes the `PspMapper
 
 Warnings contain the provider id + order id so operators can correlate log lines.
 
-## Reconciliation
+## Per-unit precision (no D6 reconciliation)
 
-`buildInvoicePayload` internally:
+D1 computes each line's HT total in integer cents (`htLineCents = toMinorUnits(item.total − item.tax_total, currency)`) and divides by `quantity` to get `unitPriceCents` — fractional when the division leaves a remainder. `centsToPennylaneDecimal` then formats fractional cents with 6 decimals (Pennylane's `raw_currency_unit_price` cap), so `unit_price × quantity` on Pennylane's side reproduces `htLineCents` exactly.
 
-1. Computes the HT cents for each item line via the formula above.
-2. Computes the HT cents for each shipping line.
-3. Sums them into `expectedHTCents`.
-4. Calls `reconcileInvoiceLineTotals(lines, expectedHTCents)`.
+**D1 does NOT call `reconcileInvoiceLineTotals`.** D6 was designed to absorb drift between two truly independent calculations; in D1 both `expected` and `actual` would be derived from the same `(total − tax_total)` source, so reconciliation would be performative (always-zero drift) — worse, would mask the per-unit rounding error that fractional cents actually fix. D6 remains available in the module's public surface and will be useful for future features that have an independent truth (e.g., E-series credit notes reconciled against the refund amount).
 
-Since lines are derived from the same `(total − tax_total)` fields that feed the sum, drift should be zero in the overwhelming majority of cases. When floating-point arithmetic introduces a 1-cent artefact (e.g., `3.33 / 3` per-unit rounded to `333` cents × 3 = `999`, but the expected line was `1000`), D6 adjusts the largest line. Anything above 1 cent is treated as a bug — D6 throws, D1 surfaces the message with item-level context.
+Example: a 3-for-10.01 EUR line produces `htLineCents = 1001`, `unitPriceCents = 333.666…`, formatted as `"3.336667"`. Pennylane evaluates `3.336667 × 3 = 10.010001`, rounds the invoice total to `10.01` — exact match to what the customer paid.
 
 ## Worked example
 

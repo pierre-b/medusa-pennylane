@@ -363,8 +363,8 @@ describe("buildInvoicePayload — shipping lines (Group D)", () => {
   });
 });
 
-describe("buildInvoicePayload — reconciliation (Group E)", () => {
-  it("leaves lines untouched when the computed sum is exact", () => {
+describe("buildInvoicePayload — fractional-cent lines (Group E)", () => {
+  it("outputs integer-cent unit price for clean divisions", () => {
     const { payload } = buildInvoicePayload({
       order: makeOrder({
         items: [item({ quantity: 1, total: 10, tax_total: 0 })],
@@ -377,20 +377,36 @@ describe("buildInvoicePayload — reconciliation (Group E)", () => {
     expect(payload.invoice_lines[0].raw_currency_unit_price).toBe("10.00");
   });
 
-  it("uses 6-decimal precision when a drift adjustment produces fractional cents", () => {
-    // Engineer drift: two items at HT=3.33 each, quantity 3 each, should be
-    // (3 * 333) + (3 * 333) = 1998 cents. If one item reports HT total of
-    // 10.00 (quantity 3, so 333.33... per unit), the per-unit rounds to 333
-    // which is 999 cents × 2 = 1998 -- no drift. Harder to engineer here.
-    // Instead, test the D6 fractional path directly by feeding HT totals that
-    // don't divide cleanly.
+  it("uses 6-decimal precision when the per-unit division produces fractional cents", () => {
+    // htLineCents = toMinorUnits(10.01, "EUR") = 1001
+    // quantity = 3 → unitPriceCents = 1001 / 3 = 333.666…
+    // centsToPennylaneDecimal formats fractional cents with 6 decimals:
+    //   (333.666… / 100).toFixed(6) = "3.336667"
+    // Pennylane then computes 3.336667 × 3 = 10.010001 → rounds to 10.01.
+    const { payload } = buildInvoicePayload({
+      order: makeOrder({
+        items: [item({ quantity: 3, total: 10.01, tax_total: 0 })],
+      }),
+      customerId: 1,
+      payment: null,
+      pspMapper: null,
+      options: baseOptions({ onUnknownPsp: "accept" }),
+    });
+    expect(payload.invoice_lines[0].raw_currency_unit_price).toBe("3.336667");
+  });
+});
+
+describe("buildInvoicePayload — BigNumberValue end-to-end integration (Group E2)", () => {
+  it("unwraps IBigNumber-shaped totals through the full pipeline", () => {
     const { payload } = buildInvoicePayload({
       order: makeOrder({
         items: [
-          // HT line = 10.01, quantity 3, per unit ≈ 333.67 cents → 334 cents,
-          // line sum = 1002 cents, but expected = 1001 → drift -1 on a
-          // quantity-3 line → adjusted unit = 333 + 2/3 = 333.666... cents
-          item({ quantity: 3, total: 10.01, tax_total: 0 }),
+          {
+            ...item({ quantity: 1 }),
+            // simulate Medusa v2 IBigNumber shape
+            total: { numeric: 10.01 } as unknown as number,
+            tax_total: { numeric: 0 } as unknown as number,
+          },
         ],
       }),
       customerId: 1,
@@ -398,11 +414,43 @@ describe("buildInvoicePayload — reconciliation (Group E)", () => {
       pspMapper: null,
       options: baseOptions({ onUnknownPsp: "accept" }),
     });
-    // Accept either the exact-integer path or the 6-decimal fractional one.
-    // The important invariant: the value is a valid numeric decimal string.
-    expect(payload.invoice_lines[0].raw_currency_unit_price).toMatch(
-      /^[\d.]+$/
-    );
+    expect(payload.invoice_lines[0].raw_currency_unit_price).toBe("10.01");
+  });
+
+  it("unwraps BigNumber-shaped totals via .toNumber()", () => {
+    const { payload } = buildInvoicePayload({
+      order: makeOrder({
+        items: [
+          {
+            ...item({ quantity: 2 }),
+            total: { toNumber: () => 20 } as unknown as number,
+            tax_total: { toNumber: () => 0 } as unknown as number,
+          },
+        ],
+      }),
+      customerId: 1,
+      payment: null,
+      pspMapper: null,
+      options: baseOptions({ onUnknownPsp: "accept" }),
+    });
+    expect(payload.invoice_lines[0].raw_currency_unit_price).toBe("10.00");
+  });
+});
+
+describe("buildInvoicePayload — display_id guard", () => {
+  it("throws when display_id is missing", () => {
+    expect(() =>
+      buildInvoicePayload({
+        order: {
+          ...makeOrder({ items: [item({ total: 10 })] }),
+          display_id: undefined,
+        } as unknown as Parameters<typeof buildInvoicePayload>[0]["order"],
+        customerId: 1,
+        payment: null,
+        pspMapper: null,
+        options: baseOptions({ onUnknownPsp: "accept" }),
+      })
+    ).toThrow(/display_id/);
   });
 });
 
