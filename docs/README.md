@@ -11,6 +11,10 @@ This directory contains one Markdown file per shipped feature. The index below i
 - [A1 — HTTP client (`PennylaneClient`)](http-client.md) — fetch-based transport with Bearer auth, typed errors, AbortController timeouts, structured logging with token redaction, and a `healthCheck()` hitting `GET /me`.
 - [A4 + A5 — Pennylane spec verification + VAT enum](spec-verification.md) — mechanically verified ADRs and committed OpenAPI fixtures covering the endpoints this plugin uses. Corrects `FR_055` → `FR_55`, decides customers filter syntax, credit-note flow, cursor pagination, `transaction_reference` placement, and reserves the PSP mapper-registry roadmap slot.
 
+### P. PSP mappers
+
+- [P1 + P2 — PSP mapper registry + Stripe mapper](psp-registry.md) — lazy registry that resolves `payment.provider_id` → `PspMapper` → Pennylane `transaction_reference`. Ships Stripe as the built-in catalogue entry (matches `pp_stripe_*`, extracts PaymentIntent id from `payment.data.id`). Plugin options: `onUnknownPsp`, `providerAliases`, `disableMappers`, `customMappers`.
+
 ## Writing a feature doc
 
 Every feature doc includes:

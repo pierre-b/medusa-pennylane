@@ -58,13 +58,18 @@ module.exports = defineConfig({
 
 All options (full documentation ships with feature H1):
 
-| Option                   | Default                                     | Description                                                                  |
-| ------------------------ | ------------------------------------------- | ---------------------------------------------------------------------------- |
-| `apiToken`               | — (required)                                | Pennylane company API token or OAuth bearer token                            |
-| `baseUrl`                | `https://app.pennylane.com/api/external/v2` | Override for staging environments                                            |
-| `defaultShippingVatRate` | `FR_200`                                    | VAT code applied to shipping lines                                           |
-| `autoSyncProducts`       | `false`                                     | When `true`, subscribes to `product.updated` and pushes changes to Pennylane |
-| `vatMetadataKey`         | `pennylane_vat_rate`                        | Product metadata key used to look up the VAT code per item                   |
+| Option                   | Default                                     | Description                                                                                                    |
+| ------------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `apiToken`               | — (required)                                | Pennylane company API token or OAuth bearer token                                                              |
+| `baseUrl`                | `https://app.pennylane.com/api/external/v2` | Override for staging environments                                                                              |
+| `requestTimeoutMs`       | `10000`                                     | Per-request abort timeout                                                                                      |
+| `onUnknownPsp`           | `"warn"`                                    | Policy when no PSP mapper resolves: `"warn"` \| `"accept"` \| `"error"`. See [PSP docs](docs/psp-registry.md). |
+| `providerAliases`        | `{}`                                        | Map a Medusa `provider_id` to a known mapper `id`, e.g. `{"pp_my_fork": "stripe"}`                             |
+| `disableMappers`         | `[]`                                        | Disable built-in mappers by id, e.g. `["stripe"]`                                                              |
+| `customMappers`          | `[]`                                        | User-supplied `PspMapper[]` (last-resort catalogue entries)                                                    |
+| `defaultShippingVatRate` | `FR_200`                                    | VAT code applied to shipping lines (feature H-series)                                                          |
+| `autoSyncProducts`       | `false`                                     | Subscribes to `product.updated` and pushes changes to Pennylane (feature F4)                                   |
+| `vatMetadataKey`         | `pennylane_vat_rate`                        | Product metadata key used to look up the VAT code per item (feature H3)                                        |
 
 ## VAT mapping convention
 
