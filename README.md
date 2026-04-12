@@ -1,0 +1,135 @@
+# medusa-plugin-pennylane
+
+[![CI](https://github.com/pierre-b/medusa-pennylane/actions/workflows/ci.yml/badge.svg)](https://github.com/pierre-b/medusa-pennylane/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/medusa-plugin-pennylane.svg)](https://www.npmjs.com/package/medusa-plugin-pennylane)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+Sync paid [Medusa v2](https://medusajs.com/) orders into [Pennylane](https://www.pennylane.com/) as customer invoices, with automatic Stripe reconciliation. Built for French e-commerce stores that need compliant invoicing without manual bookkeeping.
+
+> **Status:** foundation only. Feature work (A1 onwards) tracked in [GitHub Issues](https://github.com/pierre-b/medusa-pennylane/issues).
+
+## What it does
+
+```
+Medusa order paid (Stripe)
+       │
+       ▼
+order.payment_captured  ──►  Pennylane individual/company customer (upsert)
+                             Pennylane customer invoice (finalized)
+                             transaction_reference → Stripe payment_id
+                             invoice ID stored on the Medusa order
+```
+
+Refunds produce credit notes. Products can be one-way synced so invoice lines reference Pennylane `product_id` for consistent ledger mapping.
+
+## Requirements
+
+- Medusa v2.13.6 or later
+- Node.js ≥ 20
+- A Pennylane subscription with API access and the scopes:
+  - `customer_invoices:all`
+  - `customers:all`
+  - `products:all`
+  - `file_attachments:all`
+- Stripe connected inside Pennylane (Settings → Connectivité → Intégrations) for automatic reconciliation
+
+## Install
+
+```bash
+yarn add medusa-plugin-pennylane
+```
+
+## Configure
+
+`medusa-config.ts`:
+
+```ts
+module.exports = defineConfig({
+  plugins: [
+    {
+      resolve: "medusa-plugin-pennylane",
+      options: {
+        apiToken: process.env.PENNYLANE_API_TOKEN,
+      },
+    },
+  ],
+});
+```
+
+All options (full documentation ships with feature H1):
+
+| Option                   | Default                                     | Description                                                                  |
+| ------------------------ | ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `apiToken`               | — (required)                                | Pennylane company API token or OAuth bearer token                            |
+| `baseUrl`                | `https://app.pennylane.com/api/external/v2` | Override for staging environments                                            |
+| `defaultShippingVatRate` | `FR_200`                                    | VAT code applied to shipping lines                                           |
+| `autoSyncProducts`       | `false`                                     | When `true`, subscribes to `product.updated` and pushes changes to Pennylane |
+| `vatMetadataKey`         | `pennylane_vat_rate`                        | Product metadata key used to look up the VAT code per item                   |
+
+## VAT mapping convention
+
+Each Medusa product carries its Pennylane VAT code under `metadata.pennylane_vat_rate`. The plugin reads this when building invoice lines — there is no resolver function and no plugin-level mapping table.
+
+Example (Medusa admin → Product → Metadata):
+
+```json
+{
+  "pennylane_vat_rate": "FR_055"
+}
+```
+
+French chocolaterie reference (confirm with your expert-comptable):
+
+| Product type                                  | Code     | Rate               |
+| --------------------------------------------- | -------- | ------------------ |
+| Basic chocolate (tablets, spread, powder)     | `FR_055` | 5.5%               |
+| Confectionery (bonbons, truffles, gift boxes) | `FR_200` | 20%                |
+| Shipping                                      | `FR_200` | 20% (or pro-rated) |
+
+> ⚠️ The exact code `FR_055` vs `FR_55` will be verified against the Pennylane OpenAPI spec in feature task A4 before the enum is finalized.
+
+## Admin UI
+
+Once feature G lands:
+
+- Order detail widget: invoice ID, sync status, Pennylane PDF link, manual resync button
+- Product detail widget: VAT code, Pennylane product id, manual product sync
+- Settings page (`Settings → Pennylane`): masked token, base URL, test-connection button, VAT legend
+
+## Development
+
+```bash
+make install        # yarn install
+make dev            # yarn medusa plugin:develop (Yalc watch mode)
+make check          # lint + format check + type check (CI gate)
+make test           # unit + HTTP integration tests
+make publish-local  # publish to local Yalc store for host-app testing
+```
+
+See the full target list: `make help`.
+
+## Roadmap
+
+All planned features are tracked in GitHub Issues under the `roadmap` label, grouped as:
+
+- **A.** HTTP client & primitives (client, rate-limiter, retry, VAT enum, spec verification)
+- **B.** Data models & links (InvoiceSync, CustomerSync, module links)
+- **C.** Customer sync
+- **D.** Invoice sync (core flow)
+- **E.** Refunds → credit notes
+- **F.** Product sync (one-way)
+- **G.** Admin UI
+- **H.** Configuration & options
+- **I.** Observability
+- **J.** Documentation
+- **K.** Release engineering
+
+Each feature is implemented in its own planning session following strict Red-Green-Refactor with the five-pass review protocol. See [`CLAUDE.md`](CLAUDE.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). TL;DR: TDD discipline, `make check && make test` before every commit, one feature per PR, docs in the same changeset as code.
+
+## License
+
+Apache-2.0 © Pierre Bertet. See [LICENSE](LICENSE).
