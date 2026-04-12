@@ -1,0 +1,33 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/customer_invoices/{id}/link_credit_note.post",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "Feature E3 — link a credit note (created separately) to the original invoice on refund."
+  },
+  "path": "/api/external/v2/customer_invoices/{id}/link_credit_note",
+  "method": "POST",
+  "requiredScope": "customer_invoices:all",
+  "pathParameters": {
+    "id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Original invoice id"
+    }
+  },
+  "requestBody": {
+    "required": true,
+    "schema": {
+      "type": "object",
+      "required": ["credit_note_id"],
+      "properties": {
+        "credit_note_id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "ID of the credit note to link"
+        }
+      }
+    }
+  },
+  "notes": "Credit note creation endpoint is NOT under /customer_invoices. The plugin must discover and fixture the correct creation endpoint during feature E1 — this fixture is the linking step only."
+}

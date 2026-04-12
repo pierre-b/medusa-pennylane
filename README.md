@@ -74,7 +74,7 @@ Example (Medusa admin → Product → Metadata):
 
 ```json
 {
-  "pennylane_vat_rate": "FR_055"
+  "pennylane_vat_rate": "FR_55"
 }
 ```
 
@@ -82,11 +82,11 @@ French chocolaterie reference (confirm with your expert-comptable):
 
 | Product type                                  | Code     | Rate               |
 | --------------------------------------------- | -------- | ------------------ |
-| Basic chocolate (tablets, spread, powder)     | `FR_055` | 5.5%               |
+| Basic chocolate (tablets, spread, powder)     | `FR_55`  | 5.5%               |
 | Confectionery (bonbons, truffles, gift boxes) | `FR_200` | 20%                |
 | Shipping                                      | `FR_200` | 20% (or pro-rated) |
 
-> ⚠️ The exact code `FR_055` vs `FR_55` will be verified against the Pennylane OpenAPI spec in feature task A4 before the enum is finalized.
+The full list of accepted codes is in [`docs/spec-verification.md`](docs/spec-verification.md#adr-001--vat-enum-fr_55-not-fr_055). Verified directly against the Pennylane OpenAPI spec — the `FR_55` (no leading zero) form is authoritative.
 
 ## Admin UI
 

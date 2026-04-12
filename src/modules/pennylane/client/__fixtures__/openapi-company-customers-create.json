@@ -1,0 +1,64 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/company_customers.post",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "Feature C1 customer upsert — B2B branch (Medusa customer has company_name)"
+  },
+  "path": "/api/external/v2/company_customers",
+  "method": "POST",
+  "requestBody": {
+    "required": true,
+    "schema": {
+      "type": "object",
+      "required": ["name", "billing_address"],
+      "properties": {
+        "name": { "type": "string" },
+        "reg_no": { "type": "string", "description": "SIREN for FR companies" },
+        "vat_number": { "type": "string" },
+        "emails": {
+          "type": "array",
+          "items": { "type": "string", "format": "email" }
+        },
+        "phone": { "type": "string" },
+        "recipient": { "type": "string" },
+        "external_reference": { "type": "string" },
+        "billing_language": { "type": "string" },
+        "billing_address": {
+          "type": "object",
+          "required": ["address", "postal_code", "city", "country_alpha2"],
+          "properties": {
+            "address": { "type": "string" },
+            "postal_code": { "type": "string" },
+            "city": { "type": "string" },
+            "country_alpha2": { "type": "string" }
+          }
+        },
+        "delivery_address": {
+          "type": "object",
+          "required": ["address", "postal_code", "city", "country_alpha2"],
+          "properties": {
+            "address": { "type": "string" },
+            "postal_code": { "type": "string" },
+            "city": { "type": "string" },
+            "country_alpha2": { "type": "string" }
+          }
+        },
+        "payment_conditions": {
+          "type": "string",
+          "enum": [
+            "upon_receipt",
+            "custom",
+            "7_days",
+            "15_days",
+            "30_days",
+            "30_days_end_of_month",
+            "45_days",
+            "45_days_end_of_month",
+            "60_days"
+          ]
+        }
+      }
+    }
+  }
+}

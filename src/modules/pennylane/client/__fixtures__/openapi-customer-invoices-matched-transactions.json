@@ -1,0 +1,28 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/customer_invoices/{customer_invoice_id}/matched_transactions.post",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "Fallback manual reconciliation for invoices where transaction_reference could not be supplied at creation (unknown PSP, missing payment id, etc.). Requires the caller to already know the Pennylane transaction_id (obtained via GET /transactions)."
+  },
+  "path": "/api/external/v2/customer_invoices/{customer_invoice_id}/matched_transactions",
+  "method": "POST",
+  "pathParameters": {
+    "customer_invoice_id": { "type": "integer", "format": "int64" }
+  },
+  "requestBody": {
+    "required": true,
+    "schema": {
+      "type": "object",
+      "required": ["transaction_id"],
+      "properties": {
+        "transaction_id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "ID of a Pennylane transaction (from the connected bank / PSP integration) to reconcile against this invoice."
+        }
+      }
+    }
+  },
+  "notes": "Distinct from transaction_reference on POST /customer_invoices: that is a hint the Pennylane backend uses to auto-match an inbound transaction. This endpoint instead takes a pre-existing Pennylane transaction_id. Use transaction_reference on invoice creation when possible — it is simpler and avoids a second request."
+}

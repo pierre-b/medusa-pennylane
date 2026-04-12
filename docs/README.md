@@ -9,6 +9,7 @@ This directory contains one Markdown file per shipped feature. The index below i
 ### A. HTTP client & primitives
 
 - [A1 — HTTP client (`PennylaneClient`)](http-client.md) — fetch-based transport with Bearer auth, typed errors, AbortController timeouts, structured logging with token redaction, and a `healthCheck()` hitting `GET /me`.
+- [A4 + A5 — Pennylane spec verification + VAT enum](spec-verification.md) — mechanically verified ADRs and committed OpenAPI fixtures covering the endpoints this plugin uses. Corrects `FR_055` → `FR_55`, decides customers filter syntax, credit-note flow, cursor pagination, `transaction_reference` placement, and reserves the PSP mapper-registry roadmap slot.
 
 ## Writing a feature doc
 

@@ -167,12 +167,7 @@ Hard rule for every Pennylane integration touch:
 
 If the spec says something different from what the user's request implies, flag it. The spec wins.
 
-Known open discrepancies to verify as part of task A4 in the plan:
-
-- Exact VAT enum (is `FR_055` correct, or `FR_55`?)
-- Credit notes: body flag `credit_note: true` vs separate `link_credit_note` endpoint
-- `GET /customers` filter syntax
-- Pagination mode (page-based vs cursor)
+For spec decisions already made, see [`docs/spec-verification.md`](docs/spec-verification.md) — ADRs for the VAT enum (`FR_55`, not `FR_055`), customers filter syntax, credit-note flow, cursor pagination, `transaction_reference` placement, and the PSP mapper registry. Committed fixtures under [`src/modules/pennylane/client/__fixtures__/`](src/modules/pennylane/client/__fixtures__/) are the in-repo source of truth.
 
 ---
 

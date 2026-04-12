@@ -10,13 +10,22 @@ The comprehensive feature inventory for `medusa-plugin-pennylane`. Each row is a
 
 ## A. HTTP client & primitives
 
-| #   | Feature                                                                                                                                        | Status | Notes                                                                                           |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------- |
-| A1  | `PennylaneClient` — fetch-based, Bearer auth, typed errors, AbortController timeout, structured logging, `healthCheck()`                       | ✅     | [doc](docs/http-client.md)                                                                      |
-| A2  | Rate-limit guard — in-memory token bucket respecting 25 req / 5s; pluggable backend later                                                      | ⏳     | No `X-RateLimit-*` headers on the Pennylane side — purely client-driven                         |
-| A3  | Retry with exponential backoff — 5xx + network only, never on 4xx validation                                                                   | ⏳     | 429 isn't documented but treat as retryable if observed                                         |
-| A4  | Spec verification tasks — capture fixtures for the exact VAT enum, `GET /customers` filter syntax, credit-note endpoint shape, pagination mode | ⏳     | Produces an ADR under `docs/` + fixture JSON under `src/modules/pennylane/client/__fixtures__/` |
-| A5  | VAT code enum — typed TS enum seeded from verified spec values                                                                                 | ⏳     | Replaces the placeholder enum; blocks invoice line building                                     |
+| #   | Feature                                                                                                                                        | Status | Notes                                                                                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------- |
+| A1  | `PennylaneClient` — fetch-based, Bearer auth, typed errors, AbortController timeout, structured logging, `healthCheck()`                       | ✅     | [doc](docs/http-client.md)                                                               |
+| A2  | Rate-limit guard — in-memory token bucket respecting 25 req / 5s; pluggable backend later                                                      | ⏳     | No `X-RateLimit-*` headers on the Pennylane side — purely client-driven                  |
+| A3  | Retry with exponential backoff — 5xx + network only, never on 4xx validation                                                                   | ⏳     | 429 isn't documented but treat as retryable if observed                                  |
+| A4  | Spec verification tasks — capture fixtures for the exact VAT enum, `GET /customers` filter syntax, credit-note endpoint shape, pagination mode | ✅     | [doc](docs/spec-verification.md) — 10 fixtures under `__fixtures__/`, 6 ADRs             |
+| A5  | VAT code enum — typed TS enum seeded from verified spec values                                                                                 | ✅     | Bundled into A4: `FR_55` not `FR_055`, 20 FR codes + 8 specials, drift-guard test active |
+
+## P. PSP mappers (Payment Service Providers)
+
+The plugin ships a registry of PSP mappers with auto-detection at boot. Each mapper converts a Medusa `PaymentDTO` into the `transaction_reference` triplet that Pennylane uses to auto-reconcile an invoice against the right bank transaction. Adding new PSPs is a catalogue entry, not a fork. See [ADR-006](docs/spec-verification.md#adr-006--psp-mapper-registry-becomes-part-of-the-plugin-core).
+
+| #   | Feature                                                                                                                                                                                                                   | Status | Notes                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| P1  | `PspMapperRegistry` infrastructure — mapper interface, catalogue loader, auto-detection via `container.resolve(...)`, options (`onUnknownPsp`, `providerAliases`, `disableMappers`, `customMappers`), boot-time log recap | ⏳     | Blocks D1/D2. `onUnknownPsp` defaults to `"warn"` — invoices still emit, reconciliation becomes manual. |
+| P2  | `stripeMapper` catalogue entry — first concrete mapper: `^pp_stripe` → `{banking_provider:"stripe", provider_field_name:"payment_id", provider_field_value:<payment.data.id>}` + refund variant                           | ⏳     | Returns `null` when `payment.data.id` is missing → treated as unknown-PSP.                              |
 
 ## B. Data model & persistence
 
@@ -36,14 +45,14 @@ The comprehensive feature inventory for `medusa-plugin-pennylane`. Each row is a
 
 ## D. Invoice sync (core flow)
 
-| #   | Feature                                                                                                               | Status | Notes                                           |
-| --- | --------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------- |
-| D1  | `build-invoice-payload` step — pure function, Medusa order → Pennylane `POST /customer_invoices` body                 | ⏳     | Depends on A5 (VAT enum)                        |
-| D2  | `create-pennylane-invoice` step — finalized (`draft: false`) with `transaction_reference` from Stripe payment session | ⏳     | Depends on A4 + A5                              |
-| D3  | `sync-order-to-pennylane` workflow — orchestrates C1 → D1 → D2 → persist to `InvoiceSync`                             | ⏳     | Compensation on failure; partial-state recovery |
-| D4  | Subscriber on `order.payment_captured` — invokes D3                                                                   | ⏳     | Idempotent: refuses to duplicate on replay      |
-| D5  | Amount conversion helper — Medusa cents int → Pennylane string `"10.50"`                                              | ⏳     | Multi-currency guard                            |
-| D6  | Totals reconciliation — sum of lines == order total; adjust largest line by ≤0.01 if drift                            | ⏳     | Pennylane rejects unbalanced invoices (422)     |
+| #   | Feature                                                                                                            | Status | Notes                                                                                             |
+| --- | ------------------------------------------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------- |
+| D1  | `build-invoice-payload` step — pure function, Medusa order → Pennylane `POST /customer_invoices` body              | ⏳     | Depends on A5 (VAT enum) + P1/P2 (PSP mapper registry)                                            |
+| D2  | `create-pennylane-invoice` step — finalized (`draft: false`) with `transaction_reference` resolved from PSP mapper | ⏳     | Depends on A4/A5 + P1/P2. Emits `transaction_reference` on the anyOf Finalized branch per ADR-005 |
+| D3  | `sync-order-to-pennylane` workflow — orchestrates C1 → D1 → D2 → persist to `InvoiceSync`                          | ⏳     | Compensation on failure; partial-state recovery                                                   |
+| D4  | Subscriber on `order.payment_captured` — invokes D3                                                                | ⏳     | Idempotent: refuses to duplicate on replay                                                        |
+| D5  | Amount conversion helper — Medusa cents int → Pennylane string `"10.50"`                                           | ⏳     | Multi-currency guard                                                                              |
+| D6  | Totals reconciliation — sum of lines == order total; adjust largest line by ≤0.01 if drift                         | ⏳     | Pennylane rejects unbalanced invoices (422)                                                       |
 
 ## E. Refunds → credit notes
 

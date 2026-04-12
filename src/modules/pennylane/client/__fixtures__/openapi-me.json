@@ -1,0 +1,47 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/me.get",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "PennylaneClient.healthCheck() / future G4 test-connection button"
+  },
+  "path": "/api/external/v2/me",
+  "method": "GET",
+  "security": [{ "oauth2": [] }],
+  "description": "Returns information about the company and the user associated with the token.",
+  "responses": {
+    "200": {
+      "schema": {
+        "type": "object",
+        "required": ["user", "company", "scopes"],
+        "properties": {
+          "user": {
+            "type": "object",
+            "nullable": true,
+            "required": ["id", "first_name", "last_name", "email", "locale"],
+            "properties": {
+              "id": { "type": "integer", "format": "int64" },
+              "first_name": { "type": "string" },
+              "last_name": { "type": "string" },
+              "email": { "type": "string", "format": "email" },
+              "locale": { "type": "string", "enum": ["fr", "en", "de"] }
+            }
+          },
+          "company": {
+            "type": "object",
+            "required": ["id", "name", "reg_no"],
+            "properties": {
+              "id": { "type": "integer", "format": "int64" },
+              "name": { "type": "string" },
+              "reg_no": { "type": "string" }
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

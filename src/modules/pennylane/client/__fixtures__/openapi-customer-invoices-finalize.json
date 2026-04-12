@@ -1,0 +1,29 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/customer_invoices/{id}/finalize.put",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "Future feature: finalizing invoices that were created as drafts. Current plan (D2) creates invoices as finalized directly via POST /customer_invoices (anyOf branch 1), so this endpoint is optional — kept as a fixture for completeness."
+  },
+  "path": "/api/external/v2/customer_invoices/{id}/finalize",
+  "method": "PUT",
+  "pathParameters": {
+    "id": { "type": "integer", "format": "int64", "description": "Invoice id" }
+  },
+  "queryParameters": {
+    "use_2026_api_changes": {
+      "type": "boolean",
+      "default": true,
+      "description": "Opt-in flag for the 2026 API changes. Defaults to true (new behavior). Plugin does not need to set this explicitly."
+    }
+  },
+  "requestBody": null,
+  "responses": {
+    "200": { "description": "Invoice finalized; numbered and PDF generated." },
+    "400": {},
+    "401": {},
+    "403": {},
+    "404": {},
+    "422": {}
+  }
+}

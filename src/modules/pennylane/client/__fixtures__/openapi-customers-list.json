@@ -1,0 +1,50 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/customers.get",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "Feature C1 customer upsert — dedup lookup by external_reference"
+  },
+  "path": "/api/external/v2/customers",
+  "method": "GET",
+  "queryParameters": {
+    "cursor": {
+      "type": "string",
+      "required": false,
+      "description": "Opaque cursor from previous response.metadata; omit for the first request."
+    },
+    "limit": {
+      "type": "integer",
+      "min": 1,
+      "max": 100,
+      "default": 20
+    },
+    "filter": {
+      "type": "string",
+      "description": "URL-encoded JSON array of filter objects: [{field, operator, value}]. Supported filterable fields and their operators: id (lt/lteq/gt/gteq/eq/not_eq/in/not_in), customer_type (eq/not_eq), ledger_account_id (eq/not_eq), name (start_with/eq), external_reference (start_with/eq/not_eq/in/not_in), reg_no (eq/not_eq/in/not_in), emails (in).",
+      "example": "[{\"field\": \"external_reference\", \"operator\": \"eq\", \"value\": \"med_cust_01JR...\"}]"
+    },
+    "sort": {
+      "type": "string",
+      "default": "-id",
+      "description": "Field name, prefix with `-` for descending."
+    }
+  },
+  "responses": {
+    "200": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customers": { "type": "array" },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "cursor": { "type": "string" },
+              "limit": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

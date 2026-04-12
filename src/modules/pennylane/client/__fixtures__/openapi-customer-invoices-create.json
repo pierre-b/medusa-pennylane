@@ -1,0 +1,113 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/customer_invoices.post",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "Features D1 (build payload) and D2 (create invoice). Branch 1 (Finalized) is what the plugin emits on order.payment_captured."
+  },
+  "path": "/api/external/v2/customer_invoices",
+  "method": "POST",
+  "requestBody": {
+    "required": true,
+    "schemaKind": "anyOf",
+    "branches": [
+      {
+        "title": "Draft Customer Invoice",
+        "required": [
+          "date",
+          "deadline",
+          "customer_id",
+          "draft",
+          "invoice_lines"
+        ],
+        "hasTransactionReference": false,
+        "notes": "draft: true required; transaction_reference not accepted on drafts."
+      },
+      {
+        "title": "Finalized Customer Invoice",
+        "required": ["date", "deadline", "customer_id", "invoice_lines"],
+        "hasTransactionReference": true,
+        "notes": "When draft is absent or false, the invoice is finalized at creation. This is the branch the plugin uses."
+      }
+    ]
+  },
+  "sharedProperties": {
+    "date": { "type": "string", "format": "date" },
+    "deadline": { "type": "string", "format": "date" },
+    "customer_id": { "type": "integer", "format": "int64" },
+    "draft": { "type": "boolean" },
+    "currency": { "type": "string", "default": "EUR" },
+    "external_reference": {
+      "type": "string",
+      "description": "Client-side idempotency key. Medusa order id."
+    },
+    "label": { "type": "string", "description": "Internal accounting label." },
+    "language": { "type": "string" },
+    "pdf_invoice_subject": { "type": "string" },
+    "pdf_invoice_free_text": { "type": "string" },
+    "pdf_description": { "type": "string", "maxLength": 5000 },
+    "special_mention": { "type": "string", "maxLength": 20000 },
+    "customer_invoice_template_id": { "type": "integer", "format": "int64" },
+    "discount": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["absolute", "relative"] },
+        "value": { "type": "string" }
+      }
+    },
+    "invoice_line_sections": { "type": "array" }
+  },
+  "transactionReference": {
+    "appliesTo": "Finalized branch only",
+    "required": [
+      "banking_provider",
+      "provider_field_name",
+      "provider_field_value"
+    ],
+    "enum": {
+      "banking_provider": "string (no enum at spec level; server matches against connected integrations)",
+      "provider_field_name": "string (no enum; examples in spec: 'label', 'payment_id')",
+      "provider_field_value": "string"
+    },
+    "docsLink": "https://pennylane.readme.io/v2.0/docs/automating-payment-matching"
+  },
+  "invoiceLines": {
+    "schemaKind": "oneOf",
+    "branches": [
+      {
+        "title": "Product-based Invoice Line",
+        "required": ["product_id", "quantity"],
+        "notes": "Provide product_id to inherit label, price, unit, vat_rate, and ledger_account from the Pennylane product."
+      },
+      {
+        "title": "Standard Invoice Line",
+        "required": [
+          "label",
+          "raw_currency_unit_price",
+          "unit",
+          "vat_rate",
+          "quantity"
+        ],
+        "notes": "Fully explicit line. vat_rate accepts codes from openapi-vat-rates.json fixture."
+      }
+    ],
+    "commonProperties": {
+      "quantity": { "type": "number" },
+      "raw_currency_unit_price": {
+        "type": "string",
+        "description": "HT (pre-tax) price as a decimal string, up to 6 decimals."
+      },
+      "unit": { "type": "string", "example": "piece" },
+      "vat_rate": { "type": "string", "enumSource": "openapi-vat-rates.json" },
+      "ledger_account_id": { "type": "integer", "format": "int64" },
+      "section_rank": { "type": "integer" },
+      "discount": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["absolute", "relative"] },
+          "value": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/products.post",
+    "snapshotDate": "2026-04-12",
+    "usedBy": "Features F1-F4 — one-way Medusa product sync. Once a product exists in Pennylane, invoice lines can reference it via product_id and inherit label / price / unit / vat_rate / ledger_account."
+  },
+  "path": "/api/external/v2/products",
+  "method": "POST",
+  "requestBody": {
+    "required": true,
+    "schema": {
+      "type": "object",
+      "required": ["label", "price_before_tax", "vat_rate"],
+      "properties": {
+        "label": { "type": "string" },
+        "price_before_tax": {
+          "type": "string",
+          "description": "Decimal string, HT (pre-tax). Plugin must format from Medusa cents via (cents / 100).toFixed(2)."
+        },
+        "vat_rate": {
+          "type": "string",
+          "enumSource": "openapi-vat-rates.json"
+        },
+        "unit": { "type": "string", "example": "piece" },
+        "currency": { "type": "string" },
+        "reference": {
+          "type": "string",
+          "description": "Internal reference / SKU."
+        },
+        "external_reference": {
+          "type": "string",
+          "description": "Client-side idempotency key. Medusa product id."
+        },
+        "description": { "type": "string" },
+        "ledger_account_id": { "type": "integer", "format": "int64" }
+      }
+    }
+  }
+}
