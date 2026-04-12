@@ -36,6 +36,25 @@ const THREE_DECIMAL_CURRENCIES = new Set([
 const PENNYLANE_MAX_DECIMALS = 6;
 
 /**
+ * Inverse of {@link centsToPennylaneDecimal} for converting Medusa's major-unit
+ * amounts (e.g., `8.50` for 8.50 EUR) into the integer cents that D5 and D6
+ * work in. Uses the same ISO 4217 decimals table as the formatter, so a
+ * round-trip through `toMinorUnits` → `centsToPennylaneDecimal` is lossless for
+ * amounts that fit in the currency's precision.
+ *
+ * Throws on NaN / Infinity.
+ */
+export function toMinorUnits(amount: number, currency: string = "EUR"): number {
+  if (!Number.isFinite(amount)) {
+    throw new Error(
+      `toMinorUnits: amount must be a finite number (received ${amount})`
+    );
+  }
+  const decimals = getCurrencyDecimals(currency);
+  return Math.round(amount * 10 ** decimals);
+}
+
+/**
  * Returns the number of fraction digits for the given ISO 4217 currency code.
  * Case-insensitive. Unknown codes default to 2 (the overwhelmingly common case).
  */

@@ -1,4 +1,8 @@
-import { centsToPennylaneDecimal, getCurrencyDecimals } from "../amounts";
+import {
+  centsToPennylaneDecimal,
+  getCurrencyDecimals,
+  toMinorUnits,
+} from "../amounts";
 
 describe("centsToPennylaneDecimal", () => {
   it("formats EUR by default", () => {
@@ -62,6 +66,31 @@ describe("centsToPennylaneDecimal", () => {
   it("throws on Infinity", () => {
     expect(() => centsToPennylaneDecimal(Infinity, "EUR")).toThrow(/finite/i);
     expect(() => centsToPennylaneDecimal(-Infinity, "EUR")).toThrow(/finite/i);
+  });
+});
+
+describe("toMinorUnits", () => {
+  it("converts EUR major units to cents", () => {
+    expect(toMinorUnits(8.5, "EUR")).toBe(850);
+    expect(toMinorUnits(0, "EUR")).toBe(0);
+    expect(toMinorUnits(1.25, "EUR")).toBe(125);
+  });
+
+  it("passes zero-decimal currencies through unchanged", () => {
+    expect(toMinorUnits(1250, "JPY")).toBe(1250);
+  });
+
+  it("scales three-decimal currencies by 1000", () => {
+    expect(toMinorUnits(1.5, "KWD")).toBe(1500);
+  });
+
+  it("rounds floating-point artefacts (e.g., 0.1 + 0.2)", () => {
+    expect(toMinorUnits(0.1 + 0.2, "EUR")).toBe(30);
+  });
+
+  it("throws on NaN / Infinity", () => {
+    expect(() => toMinorUnits(NaN, "EUR")).toThrow(/finite/i);
+    expect(() => toMinorUnits(Infinity, "EUR")).toThrow(/finite/i);
   });
 });
 
