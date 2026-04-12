@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customer_invoices/{id}/mark_as_paid.put",
+    "jqQuery": ".paths.\"/api/external/v2/customer_invoices/{id}/mark_as_paid\".put",
     "snapshotDate": "2026-04-12",
     "usedBy": "Fallback feature: manually mark an invoice as paid if auto-reconciliation via transaction_reference fails for any reason. Not on the happy path."
   },

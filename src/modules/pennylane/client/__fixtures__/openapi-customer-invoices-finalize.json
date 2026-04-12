@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customer_invoices/{id}/finalize.put",
+    "jqQuery": ".paths.\"/api/external/v2/customer_invoices/{id}/finalize\".put",
     "snapshotDate": "2026-04-12",
     "usedBy": "Future feature: finalizing invoices that were created as drafts. Current plan (D2) creates invoices as finalized directly via POST /customer_invoices (anyOf branch 1), so this endpoint is optional — kept as a fixture for completeness."
   },

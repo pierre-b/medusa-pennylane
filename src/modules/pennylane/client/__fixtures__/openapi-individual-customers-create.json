@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/individual_customers.post",
+    "jqQuery": ".paths.\"/api/external/v2/individual_customers\".post",
     "snapshotDate": "2026-04-12",
     "usedBy": "Feature C1 customer upsert — B2C branch (Medusa customer has no company_name)"
   },

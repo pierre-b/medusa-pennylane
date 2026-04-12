@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customer_invoices/{id}/link_credit_note.post",
+    "jqQuery": ".paths.\"/api/external/v2/customer_invoices/{id}/link_credit_note\".post",
     "snapshotDate": "2026-04-12",
     "usedBy": "Feature E3 — link a credit note (created separately) to the original invoice on refund."
   },

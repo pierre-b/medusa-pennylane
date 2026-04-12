@@ -6,7 +6,8 @@ Minimal excerpts of the Pennylane OpenAPI spec that the plugin depends on. Every
 
 - **Upstream:** https://pennylane.readme.io/openapi/accounting.json (OpenAPI 3.0.1)
 - **Snapshot date:** set per file in `$meta.snapshotDate`
-- **Spec JSON path:** set per file in `$meta.specJsonPath` — grep the upstream spec at that path to re-verify
+- **Spec JSON path:** `$meta.specJsonPath` — a human-readable pointer into the spec
+- **jq query:** `$meta.jqQuery` — a valid jq expression that extracts the fixtured slice; copy-paste-runnable for re-verification
 
 Each file contains a `$meta` block up-front so future sessions can locate and re-verify every claim against the upstream spec.
 
@@ -21,7 +22,7 @@ Each file contains a `$meta` block up-front so future sessions can locate and re
 When a fixture's spec JSON path changes upstream:
 
 1. Re-fetch the full spec: `curl -sS https://pennylane.readme.io/openapi/accounting.json > /tmp/pennylane-spec.json`
-2. Re-extract the excerpt with `jq` at the path in `$meta.specJsonPath`
+2. Re-extract the excerpt by copy-pasting the fixture's `$meta.jqQuery` into `jq`: e.g., `jq "$(jq -r '."$meta".jqQuery' src/modules/pennylane/client/__fixtures__/openapi-vat-rates.json)" /tmp/pennylane-spec.json`
 3. Update the fixture file; bump `$meta.snapshotDate`
 4. Update any code that disagreed
 5. Run `make test` — drift-guard tests should turn green

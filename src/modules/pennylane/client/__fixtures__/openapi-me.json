@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/me.get",
+    "jqQuery": ".paths.\"/api/external/v2/me\".get",
     "snapshotDate": "2026-04-12",
     "usedBy": "PennylaneClient.healthCheck() / future G4 test-connection button"
   },

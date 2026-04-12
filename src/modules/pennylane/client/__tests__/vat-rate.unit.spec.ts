@@ -3,26 +3,43 @@ import { resolve } from "node:path";
 
 import { PENNYLANE_VAT_RATES } from "../vat-rate";
 
-const fixture = JSON.parse(
+const rawFixture = JSON.parse(
   readFileSync(
     resolve(__dirname, "..", "__fixtures__", "openapi-vat-rates.json"),
     "utf8"
   )
-) as { fr_rates: string[]; specials: string[] };
+) as Record<string, unknown>;
 
-const specCodes = [...fixture.fr_rates, ...fixture.specials];
+const assertStringArray = (value: unknown, field: string): string[] => {
+  if (!Array.isArray(value)) {
+    throw new Error(
+      `openapi-vat-rates.json fixture is corrupt: '${field}' is not an array`
+    );
+  }
+  if (value.length === 0) {
+    throw new Error(
+      `openapi-vat-rates.json fixture is corrupt: '${field}' is empty`
+    );
+  }
+  if (!value.every((v) => typeof v === "string")) {
+    throw new Error(
+      `openapi-vat-rates.json fixture is corrupt: '${field}' contains non-string values`
+    );
+  }
+  return value;
+};
+
+const frRates = assertStringArray(rawFixture.fr_rates, "fr_rates");
+const specials = assertStringArray(rawFixture.specials, "specials");
+const specCodes = [...frRates, ...specials];
 
 describe("PENNYLANE_VAT_RATES vs OpenAPI fixture", () => {
   it("includes every spec code in the fixture (no regression)", () => {
-    for (const code of specCodes) {
-      expect(PENNYLANE_VAT_RATES).toContain(code);
-    }
+    expect([...PENNYLANE_VAT_RATES]).toEqual(expect.arrayContaining(specCodes));
   });
 
-  it("does not include any code not present in the fixture (no drift)", () => {
-    for (const code of PENNYLANE_VAT_RATES) {
-      expect(specCodes).toContain(code);
-    }
+  it("does not include any code absent from the fixture (no drift)", () => {
+    expect(specCodes).toEqual(expect.arrayContaining([...PENNYLANE_VAT_RATES]));
   });
 
   it("uses the spec-correct reduced French rate (FR_55, not FR_055)", () => {

@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customers.get",
+    "jqQuery": ".paths.\"/api/external/v2/customers\".get",
     "snapshotDate": "2026-04-12",
     "usedBy": "Feature C1 customer upsert — dedup lookup by external_reference"
   },

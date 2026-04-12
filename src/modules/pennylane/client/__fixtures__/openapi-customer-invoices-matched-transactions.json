@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customer_invoices/{customer_invoice_id}/matched_transactions.post",
+    "jqQuery": ".paths.\"/api/external/v2/customer_invoices/{customer_invoice_id}/matched_transactions\".post",
     "snapshotDate": "2026-04-12",
     "usedBy": "Fallback manual reconciliation for invoices where transaction_reference could not be supplied at creation (unknown PSP, missing payment id, etc.). Requires the caller to already know the Pennylane transaction_id (obtained via GET /transactions)."
   },

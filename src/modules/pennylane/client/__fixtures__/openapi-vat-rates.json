@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customer_invoices.post.requestBody.content.application/json.schema.anyOf[1].properties.invoice_lines.items.oneOf[1].properties.vat_rate.enum",
+    "jqQuery": ".paths.\"/api/external/v2/customer_invoices\".post.requestBody.content.\"application/json\".schema.anyOf[1].properties.invoice_lines.items.oneOf[1].properties.vat_rate.enum",
     "snapshotDate": "2026-04-12",
     "scope": "French rates + cross-border / special statuses only; the upstream enum also includes 100+ country codes that are not shipped in the plugin's narrow typed enum."
   },

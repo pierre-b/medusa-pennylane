@@ -2,6 +2,7 @@
   "$meta": {
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customer_invoices.post",
+    "jqQuery": ".paths.\"/api/external/v2/customer_invoices\".post",
     "snapshotDate": "2026-04-12",
     "usedBy": "Features D1 (build payload) and D2 (create invoice). Branch 1 (Finalized) is what the plugin emits on order.payment_captured."
   },
