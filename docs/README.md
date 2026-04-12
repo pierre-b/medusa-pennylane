@@ -15,6 +15,10 @@ This directory contains one Markdown file per shipped feature. The index below i
 
 - [P1 + P2 — PSP mapper registry + Stripe mapper](psp-registry.md) — lazy registry that resolves `payment.provider_id` → `PspMapper` → Pennylane `transaction_reference`. Ships Stripe as the built-in catalogue entry (matches `pp_stripe_*`, extracts PaymentIntent id from `payment.data.id`). Plugin options: `onUnknownPsp`, `providerAliases`, `disableMappers`, `customMappers`.
 
+### D. Invoice sync
+
+- [D5 + D6 — Invoice amount helpers](invoice-amount-helpers.md) — `centsToPennylaneDecimal` (cents → Pennylane decimal string with ISO 4217 currency decimals, fractional-cent precision for D6-adjusted lines) and `reconcileInvoiceLineTotals` (adjust the largest line by up to 1 cent so line totals match the order total). Pure helpers consumed by the upcoming D1 invoice payload builder.
+
 ## Writing a feature doc
 
 Every feature doc includes:
