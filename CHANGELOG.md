@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First Red-Green unit test: VAT rate enum placeholder, wired through `make test-unit`.
 - HTTP + modules integration test harness (`make test-http`, `make test-integration`) configured with `--passWithNoTests` until the first in-host test lands via Yalc-wired fixtures.
 - Apache-2.0 license + NOTICE.
-- Public-repo boilerplate: `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md`, GitHub issue templates, PR template, Dependabot config.
+- Public-repo boilerplate: `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CONTRIBUTING.md` (issues-only policy — no external PRs accepted), GitHub issue templates, PR template (maintainer use), Dependabot config.
 - CI workflow (lint, typecheck, tests, build) and release workflow (tag-triggered npm publish with OIDC provenance).
 - `CLAUDE.md` documenting TDD discipline, primary-sources rule, five-pass code review, public-repo hygiene.
 - `docs/README.md` feature index (empty, populated as features ship).

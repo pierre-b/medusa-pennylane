@@ -128,7 +128,12 @@ Each feature is implemented in its own planning session following strict Red-Gre
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). TL;DR: TDD discipline, `make check && make test` before every commit, one feature per PR, docs in the same changeset as code.
+This project **does not accept pull requests**. Contributions are welcome through GitHub Issues:
+
+- [Report a bug](https://github.com/pierre-b/medusa-pennylane/issues/new?template=bug_report.md)
+- [Request a feature](https://github.com/pierre-b/medusa-pennylane/issues/new?template=feature_request.md)
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details and [SECURITY.md](SECURITY.md) for private security reports.
 
 ## License
 

@@ -1,3 +1,13 @@
+<!--
+  ⚠️ External pull requests are not accepted and will be closed.
+
+  If you're not a maintainer: please open an issue instead.
+    • Bug:     https://github.com/pierre-b/medusa-pennylane/issues/new?template=bug_report.md
+    • Feature: https://github.com/pierre-b/medusa-pennylane/issues/new?template=feature_request.md
+
+  Maintainers: use the checklist below.
+-->
+
 ## Summary
 
 <!-- What does this PR do? One or two sentences. Link the related issue / roadmap item. -->
@@ -5,8 +15,6 @@
 Closes #
 
 ## Changes
-
-<!-- Bullet list of meaningful changes. -->
 
 -
 
@@ -34,5 +42,3 @@ Closes #
 
 - [ ] `make check` passes
 - [ ] `make test` passes
-
-## Notes for reviewer
