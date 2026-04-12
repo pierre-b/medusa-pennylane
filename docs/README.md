@@ -6,7 +6,9 @@ This directory contains one Markdown file per shipped feature. The index below i
 
 <!-- Populated as features ship. Grouped to match the roadmap in the top-level README. -->
 
-_No features shipped yet — foundation phase only._
+### A. HTTP client & primitives
+
+- [A1 — HTTP client (`PennylaneClient`)](http-client.md) — fetch-based transport with Bearer auth, typed errors, AbortController timeouts, structured logging with token redaction, and a `healthCheck()` hitting `GET /me`.
 
 ## Writing a feature doc
 

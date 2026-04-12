@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Feature A1 — `PennylaneClient` HTTP client.** Fetch-based transport for every future Pennylane call. Bearer-auth header, JSON serialization, `AbortController` timeouts (default 10s, per-call override), typed error mapping into six `MedusaError` subclasses (`PennylaneAuthError`, `PennylaneForbiddenError`, `PennylaneNotFoundError`, `PennylaneValidationError`, `PennylaneServerError`, `PennylaneNetworkError`), structured logging with `requestId` correlation, and token redaction via ES private fields. Exposed on `PennylaneModuleService` via `getClient()` and `healthCheck()` (wraps `GET /me`). Plugin options `apiToken` (required), `baseUrl`, `requestTimeoutMs`. 42 unit tests. See [`docs/http-client.md`](docs/http-client.md).
+
+### Added (foundation, pre-A1)
+
 - Project scaffold: Medusa v2 plugin layout, TypeScript config, peer dependencies pinned to Medusa 2.13.6.
 - TDD infrastructure: Jest with `@swc/jest`, unit + integration-modules + integration-http test types.
 - Lint + format: ESLint flat config, Prettier, typescript-eslint rules matching the chocolaterie reference project.
