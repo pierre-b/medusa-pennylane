@@ -1,3 +1,12 @@
+import {
+  PennylaneAuthError,
+  PennylaneForbiddenError,
+  PennylaneNotFoundError,
+  PennylaneServerError,
+  PennylaneValidationError,
+  type PennylaneErrorContext,
+} from "./errors";
+
 export interface PennylaneClientParams {
   apiToken: string;
   baseUrl?: string;
@@ -102,11 +111,43 @@ export class PennylaneClient {
 
     const res = await fetch(url, init);
 
+    if (!res.ok) {
+      await this.handleErrorResponse(res);
+    }
+
     if (res.status === 204) {
       return undefined as T;
     }
 
     return (await res.json()) as T;
+  }
+
+  private async handleErrorResponse(res: Response): Promise<never> {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+
+    const message = extractMessage(body, res.status);
+    const context: PennylaneErrorContext = {
+      status: res.status,
+      pennylaneBody: body,
+      code: extractString(body, "code"),
+      field: extractString(body, "field"),
+    };
+
+    if (res.status === 401) throw new PennylaneAuthError(message, context);
+    if (res.status === 403) throw new PennylaneForbiddenError(message, context);
+    if (res.status === 404) throw new PennylaneNotFoundError(message, context);
+    if (res.status === 400 || res.status === 422) {
+      throw new PennylaneValidationError(message, context);
+    }
+    if (res.status >= 500) {
+      throw new PennylaneServerError(message, context);
+    }
+    throw new PennylaneValidationError(message, context);
   }
 
   private buildUrl(path: string, query?: Record<string, QueryValue>): string {
@@ -129,4 +170,22 @@ export class PennylaneClient {
     }
     return params.toString();
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function extractMessage(body: unknown, status: number): string {
+  if (isRecord(body)) {
+    if (typeof body.error === "string") return body.error;
+    if (typeof body.message === "string") return body.message;
+  }
+  return `Pennylane request failed with status ${status}`;
+}
+
+function extractString(body: unknown, key: string): string | undefined {
+  if (!isRecord(body)) return undefined;
+  const value = body[key];
+  return typeof value === "string" ? value : undefined;
 }
