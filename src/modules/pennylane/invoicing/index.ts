@@ -21,3 +21,12 @@ export {
   type CreatePennylaneInvoiceInput,
   type CreatePennylaneInvoiceResult,
 } from "./create-invoice";
+export { pickCapturedPayment } from "./pick-payment";
+export {
+  syncOrderToPennylane,
+  type InvoiceSyncRepo,
+  type InvoiceSyncRow,
+  type SyncOrderToPennylaneInput,
+  type SyncOrderToPennylaneOptions,
+  type SyncOrderToPennylaneResult,
+} from "./sync-order";
