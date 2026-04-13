@@ -3,7 +3,7 @@
     "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
     "specJsonPath": "paths./api/external/v2/customers.get",
     "jqQuery": ".paths.\"/api/external/v2/customers\".get",
-    "snapshotDate": "2026-04-12",
+    "snapshotDate": "2026-04-13",
     "usedBy": "Feature C1 customer upsert — dedup lookup by external_reference"
   },
   "path": "/api/external/v2/customers",
@@ -12,7 +12,7 @@
     "cursor": {
       "type": "string",
       "required": false,
-      "description": "Opaque cursor from previous response.metadata; omit for the first request."
+      "description": "Opaque cursor from previous response.next_cursor; omit for the first request."
     },
     "limit": {
       "type": "integer",
@@ -35,17 +35,24 @@
     "200": {
       "schema": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
-          "customers": { "type": "array" },
-          "metadata": {
-            "type": "object",
-            "properties": {
-              "cursor": { "type": "string" },
-              "limit": { "type": "integer" }
-            }
+          "has_more": {
+            "type": "boolean",
+            "description": "Indicates whether additional results are available beyond this set."
+          },
+          "next_cursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Cursor to retrieve the next set of results. `null` when no further results."
+          },
+          "items": {
+            "type": "array",
+            "description": "oneOf: Company customer (has `name`, `reg_no`, `vat_number`, `customer_type: \"company\"`) or Individual customer (has `first_name`, `last_name`, `customer_type: \"individual\"`). Both variants include `id`, `customer_type`, `external_reference`, `billing_address`, etc."
           }
         }
       }
     }
-  }
+  },
+  "notes": "Response list key is `items`, NOT `customers`. Earlier fixture versions mistakenly documented `{customers: [...], metadata: {cursor, limit}}` — that shape is fabricated. Verified against the real spec on 2026-04-13."
 }

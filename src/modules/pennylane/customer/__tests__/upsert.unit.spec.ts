@@ -59,7 +59,7 @@ describe("upsertPennylaneCustomer — externalReference derivation (Group B)", (
     const client = makeClient();
     const getSpy = jest
       .spyOn(client, "get")
-      .mockResolvedValue({ customers: [{ id: 99 }] });
+      .mockResolvedValue({ items: [{ id: 99 }] });
 
     const result = await upsertPennylaneCustomer({
       order: makeOrder({ customer_id: "cust_abc" }),
@@ -72,7 +72,7 @@ describe("upsertPennylaneCustomer — externalReference derivation (Group B)", (
 
   it("uses 'med_order_<order.id>' when the order is a guest (customer_id null)", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [{ id: 99 }] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [{ id: 99 }] });
 
     const result = await upsertPennylaneCustomer({
       order: makeOrder({ id: "order_guest_xyz", customer_id: null }),
@@ -84,7 +84,7 @@ describe("upsertPennylaneCustomer — externalReference derivation (Group B)", (
 
   it("respects externalReferenceOverride when provided", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [{ id: 99 }] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [{ id: 99 }] });
 
     const result = await upsertPennylaneCustomer({
       order: makeOrder(),
@@ -104,7 +104,7 @@ describe("upsertPennylaneCustomer — lookup path (Group C)", () => {
   it("returns an existing customer with action='found'", async () => {
     const client = makeClient();
     jest.spyOn(client, "get").mockResolvedValue({
-      customers: [{ id: 42, customer_type: "individual" }],
+      items: [{ id: 42, customer_type: "individual" }],
     });
 
     const result = await upsertPennylaneCustomer({
@@ -124,7 +124,7 @@ describe("upsertPennylaneCustomer — lookup path (Group C)", () => {
     const client = makeClient();
     jest
       .spyOn(client, "get")
-      .mockResolvedValue({ customers: [{ id: 7, customer_type: "company" }] });
+      .mockResolvedValue({ items: [{ id: 7, customer_type: "company" }] });
 
     const result = await upsertPennylaneCustomer({
       order: makeOrder(),
@@ -133,9 +133,9 @@ describe("upsertPennylaneCustomer — lookup path (Group C)", () => {
     expect(result.type).toBe("company");
   });
 
-  it("falls through to the create path when the customers array is empty", async () => {
+  it("falls through to the create path when the items array is empty", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
     const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 101 });
 
     const result = await upsertPennylaneCustomer({
@@ -151,7 +151,7 @@ describe("upsertPennylaneCustomer — lookup path (Group C)", () => {
     const client = makeClient();
     const getSpy = jest
       .spyOn(client, "get")
-      .mockResolvedValue({ customers: [{ id: 1 }] });
+      .mockResolvedValue({ items: [{ id: 1 }] });
 
     await upsertPennylaneCustomer({
       order: makeOrder({ customer_id: "cust_xyz" }),
@@ -182,7 +182,7 @@ describe("upsertPennylaneCustomer — lookup path (Group C)", () => {
 describe("upsertPennylaneCustomer — individual create path (Group D)", () => {
   const setupEmptyLookup = () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
     const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 55 });
     return { client, postSpy };
   };
@@ -262,7 +262,7 @@ describe("upsertPennylaneCustomer — individual create path (Group D)", () => {
 describe("upsertPennylaneCustomer — company create path (Group E)", () => {
   const setupB2B = (metadata?: Record<string, unknown>) => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
     const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 88 });
     const order = makeOrder({
       billing_address: billing({ company: "Chocolaterie SAS" }),
@@ -316,7 +316,7 @@ describe("upsertPennylaneCustomer — company create path (Group E)", () => {
 
   it("omits recipient when neither first_name nor last_name is present", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
     const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 1 });
     const order = makeOrder({
       billing_address: billing({
@@ -335,7 +335,7 @@ describe("upsertPennylaneCustomer — company create path (Group E)", () => {
 describe("upsertPennylaneCustomer — email normalization", () => {
   it("lowercases the email before sending to Pennylane", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
     const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 1 });
 
     await upsertPennylaneCustomer({
@@ -355,7 +355,7 @@ describe("upsertPennylaneCustomer — email normalization", () => {
 describe("upsertPennylaneCustomer — validation + defensive handling (Group F)", () => {
   it("throws when order.billing_address is missing", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
 
     await expect(
       upsertPennylaneCustomer({
@@ -370,7 +370,7 @@ describe("upsertPennylaneCustomer — validation + defensive handling (Group F)"
 
   it("throws when the individual path is missing first_name", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
 
     await expect(
       upsertPennylaneCustomer({
@@ -385,7 +385,7 @@ describe("upsertPennylaneCustomer — validation + defensive handling (Group F)"
 
   it("treats empty company_name as individual (heuristic verification)", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
     const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 1 });
 
     await upsertPennylaneCustomer({
@@ -396,18 +396,18 @@ describe("upsertPennylaneCustomer — validation + defensive handling (Group F)"
     expect(postSpy.mock.calls[0]?.[0]).toBe("/individual_customers");
   });
 
-  it("throws when the lookup response has no customers array", async () => {
+  it("throws when the lookup response has no items array", async () => {
     const client = makeClient();
     jest.spyOn(client, "get").mockResolvedValue({ weird: "shape" });
 
     await expect(
       upsertPennylaneCustomer({ order: makeOrder(), client })
-    ).rejects.toThrow(/customers/);
+    ).rejects.toThrow(/items/);
   });
 
   it("throws when the create response does not contain a numeric id", async () => {
     const client = makeClient();
-    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    jest.spyOn(client, "get").mockResolvedValue({ items: [] });
     jest.spyOn(client, "post").mockResolvedValue({ id: "not-a-number" });
 
     await expect(

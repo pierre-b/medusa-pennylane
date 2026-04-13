@@ -127,15 +127,15 @@ async function lookupCustomer(
   const filter = JSON.stringify([
     { field: "external_reference", operator: "eq", value: externalReference },
   ]);
-  const response = await client.get<{ customers: unknown }>("/customers", {
+  const response = await client.get<{ items: unknown }>("/customers", {
     query: { filter, limit: 1 },
   });
-  if (!Array.isArray(response.customers)) {
+  if (!Array.isArray(response.items)) {
     throw new Error(
-      `upsertPennylaneCustomer: unexpected GET /customers response shape (missing customers array)`
+      `upsertPennylaneCustomer: unexpected GET /customers response shape (missing items array)`
     );
   }
-  const first = response.customers[0] as
+  const first = response.items[0] as
     | { id?: unknown; customer_type?: unknown }
     | undefined;
   if (!first) return null;
