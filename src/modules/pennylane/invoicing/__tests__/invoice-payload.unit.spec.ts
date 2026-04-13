@@ -619,18 +619,7 @@ describe("buildInvoicePayload — TransactionReference validation", () => {
   });
 });
 
-describe("buildInvoicePayload — payment_conditions + label", () => {
-  it("sets payment_conditions to 'upon_receipt' (invoice is already paid)", () => {
-    const { payload } = buildInvoicePayload({
-      order: makeOrder({ items: [item({ total: 10 })] }),
-      customerId: 1,
-      payment: null,
-      pspMapper: null,
-      options: baseOptions({ onUnknownPsp: "accept" }),
-    });
-    expect(payload.payment_conditions).toBe("upon_receipt");
-  });
-
+describe("buildInvoicePayload — label", () => {
   it("sets label to a human-readable 'Medusa order #<display_id>' form", () => {
     const { payload } = buildInvoicePayload({
       order: makeOrder({

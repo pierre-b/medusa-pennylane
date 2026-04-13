@@ -43,7 +43,6 @@ export interface PennylaneInvoiceCreatePayload {
   currency: string;
   draft: false;
   label: string;
-  payment_conditions: "upon_receipt";
   transaction_reference?: TransactionReference;
   invoice_lines: PennylaneInvoiceLinePayload[];
 }
@@ -144,7 +143,6 @@ export function buildInvoicePayload(
     currency,
     draft: false,
     label: `Medusa order #${order.display_id}`,
-    payment_conditions: "upon_receipt",
     invoice_lines,
     ...(transactionReference
       ? { transaction_reference: transactionReference }

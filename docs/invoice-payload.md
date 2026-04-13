@@ -59,7 +59,6 @@ interface BuildInvoicePayloadOutput {
     currency: string; // uppercase ISO 4217
     draft: false;
     label: string; // "Medusa order #<display_id>" — internal Pennylane-side label
-    payment_conditions: "upon_receipt"; // invoice is already paid
     transaction_reference?: {
       // omitted when no mapper resolves
       banking_provider: string;
