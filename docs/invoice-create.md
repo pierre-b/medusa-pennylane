@@ -96,6 +96,11 @@ D3 workflow (future):
   8. Log warnings + action
 ```
 
+## Known limitations
+
+- **Concurrent re-entry** — two D2 calls firing in parallel for the same `external_reference` (e.g., the future D4 subscriber replaying the same event) both see an empty lookup and both POST. Pennylane's behavior on duplicate `external_reference` POSTs is not documented in the OpenAPI spec. The future D3 workflow closes this window with a unique index on `InvoiceSync.external_reference` + row-level locking; D2 alone does not.
+- **Idempotent match ignores draft/finalized status** — if an invoice with the target `external_reference` already exists as a Pennylane-side draft (e.g. manually created by an operator), D2 returns `action: "idempotent"` with that draft's id, not realizing it isn't finalized. In practice D1 always produces `draft: false` payloads so no D2-created invoice can be a draft, and the chocolaterie flow has no manual-draft workflow. Callers that need draft guard-rails should GET `/customer_invoices/{id}` and inspect `draft` themselves.
+
 ## Tests
 
 `src/modules/pennylane/invoicing/__tests__/create-invoice.unit.spec.ts` — 10 tests:

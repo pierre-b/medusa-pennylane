@@ -162,4 +162,4 @@ D3 workflow (future)
 - **CustomerSync DB persistence** — C1 is stateless w.r.t. our own tables. D3 writes the `customer ↔ pennylane_customer_id` link.
 - **Concurrent-create race** — two parallel D3s for the same customer could both miss the lookup and both try to create. Pennylane's response to duplicate `external_reference` on customer creation is undocumented; we accept the low-impact risk.
 - **SIREN / VAT local validation** — Luhn checksum on SIREN is not performed. Pennylane validates server-side.
-- **Payment conditions per customer** — D1 sets `payment_conditions: "upon_receipt"` at the invoice level.
+- **Payment conditions** — not set per-customer or per-invoice. Payment status is resolved entirely by Pennylane's auto-reconciliation of the `transaction_reference` block D1 emits.
