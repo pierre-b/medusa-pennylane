@@ -11,4 +11,13 @@ export interface PennylaneModuleOptions {
   providerAliases?: Record<string, string>;
   disableMappers?: string[];
   customMappers?: PspMapper[];
+
+  // Sync orchestration (feature D4)
+  autoSyncOnCapture?: boolean;
+  vatMetadataKey?: string;
+  defaultShippingVatRate?: string;
+  itemUnit?: string;
+  shippingUnit?: string;
+  metadataSirenKey?: string;
+  metadataVatNumberKey?: string;
 }

@@ -91,3 +91,63 @@ describe("PennylaneModuleService PSP registry wiring", () => {
     expect(svc.getPspRegistry().resolve("pp_stripe_stripe")).toBe(stripeMapper);
   });
 });
+
+describe("PennylaneModuleService sync options (feature D4)", () => {
+  it("getSyncOptions() uses documented defaults when nothing is configured", () => {
+    const svc = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t" }
+    );
+
+    expect(svc.getSyncOptions()).toEqual({
+      vatMetadataKey: "pennylane_vat_rate",
+      defaultShippingVatRate: "FR_200",
+      onUnknownPsp: "warn",
+      itemUnit: "piece",
+      shippingUnit: "forfait",
+      metadataSirenKey: "siren",
+      metadataVatNumberKey: "vat_number",
+    });
+  });
+
+  it("getSyncOptions() returns a frozen merged view that picks up overrides", () => {
+    const svc = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      {
+        apiToken: "t",
+        vatMetadataKey: "custom_vat",
+        defaultShippingVatRate: "FR_55",
+        itemUnit: "kg",
+        onUnknownPsp: "error",
+      }
+    );
+
+    const opts = svc.getSyncOptions();
+    expect(opts.vatMetadataKey).toBe("custom_vat");
+    expect(opts.defaultShippingVatRate).toBe("FR_55");
+    expect(opts.itemUnit).toBe("kg");
+    expect(opts.onUnknownPsp).toBe("error");
+    expect(opts.shippingUnit).toBe("forfait"); // untouched default
+    expect(Object.isFrozen(opts)).toBe(true);
+  });
+
+  it("isAutoSyncOnCaptureEnabled() defaults to true; honors explicit false", () => {
+    const svcDefault = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t" }
+    );
+    expect(svcDefault.isAutoSyncOnCaptureEnabled()).toBe(true);
+
+    const svcOptOut = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t", autoSyncOnCapture: false }
+    );
+    expect(svcOptOut.isAutoSyncOnCaptureEnabled()).toBe(false);
+
+    const svcExplicit = new PennylaneModuleService(
+      { logger: silentLogger as never },
+      { apiToken: "t", autoSyncOnCapture: true }
+    );
+    expect(svcExplicit.isAutoSyncOnCaptureEnabled()).toBe(true);
+  });
+});
