@@ -13,7 +13,7 @@ import { syncOrderToPennylaneWorkflow } from "../workflows/sync-order-to-pennyla
 import {
   handlePaymentCaptured,
   type QueryLike,
-} from "./handle-payment-captured";
+} from "./_handle-payment-captured";
 
 export default async function pennylanePaymentCapturedHandler({
   event,

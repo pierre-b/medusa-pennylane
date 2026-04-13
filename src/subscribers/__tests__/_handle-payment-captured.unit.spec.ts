@@ -4,7 +4,7 @@ import type { SyncOrderToPennylaneOptions } from "../../modules/pennylane/invoic
 import {
   handlePaymentCaptured,
   type QueryLike,
-} from "../handle-payment-captured";
+} from "../_handle-payment-captured";
 
 const silentLogger: PennylaneLogger = {
   info: jest.fn(),

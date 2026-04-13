@@ -49,7 +49,7 @@ The handler **never throws**. Medusa v2 subscribers are fire-and-forget: a throw
 
 Same split as D3. The Layer 1 file is a pure async helper with plain deps; the Layer 2 file is a thin Medusa subscriber that resolves the container and delegates.
 
-- `src/subscribers/handle-payment-captured.ts` — pure handler. Tested exhaustively with mocked deps.
+- `src/subscribers/_handle-payment-captured.ts` — pure handler. Tested exhaustively with mocked deps. The underscore prefix matches Medusa's `ResourceLoader` exclude regex, so the SubscriberLoader does NOT attempt to register this helper file as a subscriber at boot.
 - `src/subscribers/payment-captured.ts` — Medusa subscriber (default export + `config`). Resolves `query`, `logger`, and the `pennylane` service from the container.
 
 ## Configuration
