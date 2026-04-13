@@ -1,0 +1,54 @@
+{
+  "$meta": {
+    "specUrl": "https://pennylane.readme.io/openapi/accounting.json",
+    "specJsonPath": "paths./api/external/v2/customer_invoices.get",
+    "jqQuery": ".paths.\"/api/external/v2/customer_invoices\".get",
+    "snapshotDate": "2026-04-13",
+    "usedBy": "Feature D2 createPennylaneInvoice — idempotent pre-check by external_reference"
+  },
+  "path": "/api/external/v2/customer_invoices",
+  "method": "GET",
+  "queryParameters": {
+    "cursor": {
+      "type": "string",
+      "required": false,
+      "description": "Opaque cursor from previous response.next_cursor; omit for the first request."
+    },
+    "limit": {
+      "type": "integer",
+      "min": 1,
+      "max": 100,
+      "default": 20
+    },
+    "filter": {
+      "type": "string",
+      "description": "URL-encoded JSON array of filter objects. Supported filterable fields and operators: id / date / customer_id / billing_subscription_id / quote_id (lt/lteq/gt/gteq/eq/not_eq/in/not_in), invoice_number (eq/not_eq/in/not_in), draft (eq boolean), credit_note (eq boolean), external_reference (eq only), category_id (in).",
+      "example": "[{\"field\": \"external_reference\", \"operator\": \"eq\", \"value\": \"1234\"}]"
+    },
+    "sort": {
+      "type": "string",
+      "default": "-id",
+      "description": "Field name, prefix with `-` for descending. Available: id, date."
+    },
+    "include": {
+      "type": "string",
+      "description": "Optional related resources: `invoice_lines`. Experimental."
+    }
+  },
+  "responses": {
+    "200": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "has_more": { "type": "boolean" },
+          "next_cursor": { "type": "string", "nullable": true },
+          "items": {
+            "type": "array",
+            "description": "Array of Customer Invoices and/or credit notes. Each item includes id (integer), invoice_number, external_reference, currency, currency_amount, currency_amount_before_tax, currency_tax, date, deadline, draft, credit_note, paid, public_file_url, and more."
+          }
+        }
+      }
+    }
+  },
+  "notes": "external_reference supports only `eq` (unlike /customers which allows start_with, not_eq, in, not_in). D2 uses `eq` with the invoice's external_reference (String(display_id))."
+}

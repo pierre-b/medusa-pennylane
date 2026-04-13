@@ -46,14 +46,14 @@ The plugin ships a registry of PSP mappers with lazy resolution on demand. Each 
 
 ## D. Invoice sync (core flow)
 
-| #   | Feature                                                                                                            | Status | Notes                                                                                                             |
-| --- | ------------------------------------------------------------------------------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------- |
-| D1  | `build-invoice-payload` step — pure function, Medusa order → Pennylane `POST /customer_invoices` body              | ✅     | [doc](docs/invoice-payload.md). HT extraction via `(total − tax_total)`; composes D5/D6/P1. 39 new tests.         |
-| D2  | `create-pennylane-invoice` step — finalized (`draft: false`) with `transaction_reference` resolved from PSP mapper | ⏳     | Depends on A4/A5 + P1/P2. Emits `transaction_reference` on the anyOf Finalized branch per ADR-005                 |
-| D3  | `sync-order-to-pennylane` workflow — orchestrates C1 → D1 → D2 → persist to `InvoiceSync`                          | ⏳     | Compensation on failure; partial-state recovery                                                                   |
-| D4  | Subscriber on `order.payment_captured` — invokes D3                                                                | ⏳     | Idempotent: refuses to duplicate on replay                                                                        |
-| D5  | Amount conversion helper — Medusa cents int → Pennylane decimal string                                             | ✅     | [doc](docs/invoice-amount-helpers.md). ISO 4217 table; 0/2/3-decimal currencies; 6 decimals for fractional input. |
-| D6  | Totals reconciliation — sum of lines == order total; adjust largest line by ≤0.01 if drift                         | ✅     | Bundled with D5. Generic signature. Fractional-cent behavior with quantity > 1 flagged for D2 live smoke test.    |
+| #   | Feature                                                                                                            | Status | Notes                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | `build-invoice-payload` step — pure function, Medusa order → Pennylane `POST /customer_invoices` body              | ✅     | [doc](docs/invoice-payload.md). HT extraction via `(total − tax_total)`; composes D5/D6/P1. 39 new tests.                                    |
+| D2  | `create-pennylane-invoice` step — finalized (`draft: false`) with `transaction_reference` resolved from PSP mapper | ✅     | [doc](docs/invoice-create.md). Idempotent pre-check on `external_reference`; returns `{invoiceId, externalReference, action}`. 10 new tests. |
+| D3  | `sync-order-to-pennylane` workflow — orchestrates C1 → D1 → D2 → persist to `InvoiceSync`                          | ⏳     | Compensation on failure; partial-state recovery                                                                                              |
+| D4  | Subscriber on `order.payment_captured` — invokes D3                                                                | ⏳     | Idempotent: refuses to duplicate on replay                                                                                                   |
+| D5  | Amount conversion helper — Medusa cents int → Pennylane decimal string                                             | ✅     | [doc](docs/invoice-amount-helpers.md). ISO 4217 table; 0/2/3-decimal currencies; 6 decimals for fractional input.                            |
+| D6  | Totals reconciliation — sum of lines == order total; adjust largest line by ≤0.01 if drift                         | ✅     | Bundled with D5. Generic signature. Fractional-cent behavior with quantity > 1 flagged for D2 live smoke test.                               |
 
 ## E. Refunds → credit notes
 

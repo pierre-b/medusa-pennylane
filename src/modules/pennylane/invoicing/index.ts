@@ -16,3 +16,8 @@ export {
   type PennylaneInvoiceCreatePayload,
   type PennylaneInvoiceLinePayload,
 } from "./invoice-payload";
+export {
+  createPennylaneInvoice,
+  type CreatePennylaneInvoiceInput,
+  type CreatePennylaneInvoiceResult,
+} from "./create-invoice";
