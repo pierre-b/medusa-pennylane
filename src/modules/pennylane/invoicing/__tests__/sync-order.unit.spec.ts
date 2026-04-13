@@ -435,6 +435,53 @@ describe("syncOrderToPennylane — failure paths (Group D)", () => {
 });
 
 /* ------------------------------------------------------------------------ */
+/* Group F — defensive guards                                                */
+/* ------------------------------------------------------------------------ */
+
+describe("syncOrderToPennylane — defensive guards (Group F)", () => {
+  it("throws when order.display_id is missing", async () => {
+    const client = makeClient();
+    const repo = makeRepo();
+    const order = makeOrder({ display_id: null as unknown as number });
+
+    await expect(
+      syncOrderToPennylane({
+        order,
+        client,
+        pspRegistry: makeRegistry(),
+        invoiceSyncs: repo,
+        options: makeOptions(),
+      })
+    ).rejects.toThrow(/no display_id/);
+    expect(repo.listInvoiceSyncs).not.toHaveBeenCalled();
+  });
+
+  it("throws if an already-synced row has a non-numeric pennylane_invoice_id", async () => {
+    const client = makeClient();
+    const repo = makeRepo();
+    repo.listInvoiceSyncs.mockResolvedValue([
+      {
+        id: "sync_corrupt",
+        status: "synced",
+        pennylane_invoice_id: "not-a-number",
+        external_reference: "42",
+        last_error: null,
+      },
+    ]);
+
+    await expect(
+      syncOrderToPennylane({
+        order: makeOrder(),
+        client,
+        pspRegistry: makeRegistry(),
+        invoiceSyncs: repo,
+        options: makeOptions(),
+      })
+    ).rejects.toThrow(/non-numeric pennylane_invoice_id/);
+  });
+});
+
+/* ------------------------------------------------------------------------ */
 /* Group E — passthrough                                                    */
 /* ------------------------------------------------------------------------ */
 

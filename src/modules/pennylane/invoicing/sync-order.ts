@@ -73,6 +73,12 @@ export async function syncOrderToPennylane(
   input: SyncOrderToPennylaneInput
 ): Promise<SyncOrderToPennylaneResult> {
   const { order, client, pspRegistry, invoiceSyncs, options } = input;
+
+  if (order.display_id === undefined || order.display_id === null) {
+    throw new Error(
+      `syncOrderToPennylane: order ${order.id} has no display_id; cannot derive external_reference`
+    );
+  }
   const externalReference = String(order.display_id);
 
   const existing = await loadExisting(invoiceSyncs, order.id);
@@ -82,9 +88,15 @@ export async function syncOrderToPennylane(
     existing.status === "synced" &&
     existing.pennylane_invoice_id !== null
   ) {
+    const parsedInvoiceId = Number(existing.pennylane_invoice_id);
+    if (!Number.isFinite(parsedInvoiceId)) {
+      throw new Error(
+        `syncOrderToPennylane: InvoiceSync ${existing.id} for order ${order.id} has non-numeric pennylane_invoice_id ${JSON.stringify(existing.pennylane_invoice_id)}`
+      );
+    }
     return {
       invoiceSyncId: existing.id,
-      pennylaneInvoiceId: Number(existing.pennylane_invoice_id),
+      pennylaneInvoiceId: parsedInvoiceId,
       pennylaneCustomerId: null,
       externalReference,
       action: "already-synced",
