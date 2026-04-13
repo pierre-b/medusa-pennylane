@@ -6,6 +6,9 @@ import {
   toPennylaneBillingAddress,
   type PennylaneBillingAddress,
 } from "./address";
+import { requireBillingAddressField } from "./lib";
+
+const CALLER = "upsertPennylaneCustomer";
 
 export type PennylaneCustomerType = "individual" | "company";
 
@@ -163,12 +166,18 @@ async function createIndividualCustomer(params: {
     externalReference,
   } = params;
 
-  const first_name = nonEmpty(
+  const first_name = requireBillingAddressField(
     billingAddress.first_name,
     "first_name",
-    order.id
+    order.id,
+    CALLER
   );
-  const last_name = nonEmpty(billingAddress.last_name, "last_name", order.id);
+  const last_name = requireBillingAddressField(
+    billingAddress.last_name,
+    "last_name",
+    order.id,
+    CALLER
+  );
 
   const body: Record<string, unknown> = {
     first_name,
@@ -201,7 +210,12 @@ async function createCompanyCustomer(params: {
     metadataVatNumberKey,
   } = params;
 
-  const name = nonEmpty(billingAddress.company, "company", order.id);
+  const name = requireBillingAddressField(
+    billingAddress.company,
+    "company",
+    order.id,
+    CALLER
+  );
 
   const body: Record<string, unknown> = {
     name,
@@ -210,6 +224,7 @@ async function createCompanyCustomer(params: {
   };
   attachOptionalString(body, "phone", billingAddress.phone);
   attachEmails(body, order.email);
+  attachRecipient(body, billingAddress);
 
   const metadata = (order.metadata ?? {}) as Record<string, unknown>;
   attachOptionalString(body, "reg_no", metadata[metadataSirenKey]);
@@ -247,19 +262,21 @@ function attachOptionalString(
 
 function attachEmails(body: Record<string, unknown>, email: unknown): void {
   if (typeof email === "string" && email.length > 0) {
-    body.emails = [email];
+    // Normalize casing so Pennylane's dedup (and ours on future re-syncs)
+    // is consistent whether the customer typed "User@Example.COM" or
+    // "user@example.com".
+    body.emails = [email.toLowerCase()];
   }
 }
 
-function nonEmpty(
-  value: string | undefined,
-  field: string,
-  orderId: string
-): string {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new Error(
-      `upsertPennylaneCustomer: order ${orderId} billing_address.${field} is missing or empty`
-    );
+function attachRecipient(
+  body: Record<string, unknown>,
+  billingAddress: OrderAddressDTO
+): void {
+  const parts = [billingAddress.first_name, billingAddress.last_name].filter(
+    (p): p is string => typeof p === "string" && p.length > 0
+  );
+  if (parts.length > 0) {
+    body.recipient = parts.join(" ");
   }
-  return value;
 }

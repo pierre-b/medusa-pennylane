@@ -34,14 +34,13 @@ type OrderOverrides = {
 const makeOrder = (overrides: OrderOverrides = {}): OrderDTO =>
   ({
     id: overrides.id ?? "order_01JABC",
-    customer_id:
-      overrides.customer_id === undefined ? "cust_1" : overrides.customer_id,
-    email:
-      overrides.email === undefined ? "jean@example.test" : overrides.email,
+    // `in` detection (not `=== undefined`) so a test can explicitly pass
+    // `billing_address: undefined` to simulate a missing address; the
+    // `=== undefined` form would silently default it to billing().
+    customer_id: "customer_id" in overrides ? overrides.customer_id : "cust_1",
+    email: "email" in overrides ? overrides.email : "jean@example.test",
     billing_address:
-      overrides.billing_address === undefined
-        ? billing()
-        : overrides.billing_address,
+      "billing_address" in overrides ? overrides.billing_address : billing(),
     metadata: overrides.metadata ?? null,
   }) as unknown as OrderDTO;
 
@@ -306,6 +305,47 @@ describe("upsertPennylaneCustomer — company create path (Group E)", () => {
     expect("reg_no" in body).toBe(false);
     expect("vat_number" in body).toBe(false);
   });
+
+  it("populates recipient with the contact person's name on B2B", async () => {
+    const { client, postSpy, order } = setupB2B();
+    await upsertPennylaneCustomer({ order, client });
+    const body = postSpy.mock.calls[0]?.[1]?.body as Record<string, unknown>;
+    // billing() fixture sets first_name "Jean", last_name "Dupont"
+    expect(body.recipient).toBe("Jean Dupont");
+  });
+
+  it("omits recipient when neither first_name nor last_name is present", async () => {
+    const client = makeClient();
+    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 1 });
+    const order = makeOrder({
+      billing_address: billing({
+        company: "Chocolaterie SAS",
+        first_name: undefined,
+        last_name: undefined,
+      }),
+    });
+
+    await upsertPennylaneCustomer({ order, client });
+    const body = postSpy.mock.calls[0]?.[1]?.body as Record<string, unknown>;
+    expect("recipient" in body).toBe(false);
+  });
+});
+
+describe("upsertPennylaneCustomer — email normalization", () => {
+  it("lowercases the email before sending to Pennylane", async () => {
+    const client = makeClient();
+    jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
+    const postSpy = jest.spyOn(client, "post").mockResolvedValue({ id: 1 });
+
+    await upsertPennylaneCustomer({
+      order: makeOrder({ email: "Jean.Dupont@EXAMPLE.Test" }),
+      client,
+    });
+
+    const body = postSpy.mock.calls[0]?.[1]?.body as Record<string, unknown>;
+    expect(body.emails).toEqual(["jean.dupont@example.test"]);
+  });
 });
 
 /* ------------------------------------------------------------------------ */
@@ -316,15 +356,15 @@ describe("upsertPennylaneCustomer — validation + defensive handling (Group F)"
   it("throws when order.billing_address is missing", async () => {
     const client = makeClient();
     jest.spyOn(client, "get").mockResolvedValue({ customers: [] });
-    const orderWithoutBilling = {
-      id: "order_no_billing",
-      customer_id: "cust_1",
-      email: "j@example.test",
-      metadata: null,
-    } as unknown as OrderDTO;
 
     await expect(
-      upsertPennylaneCustomer({ order: orderWithoutBilling, client })
+      upsertPennylaneCustomer({
+        order: makeOrder({
+          id: "order_no_billing",
+          billing_address: undefined,
+        }),
+        client,
+      })
     ).rejects.toThrow(/order_no_billing.*billing_address/i);
   });
 
